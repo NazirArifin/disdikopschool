@@ -5,13 +5,33 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <link rel="icon" href="<%= BASE_URL %>favicon.ico">
-    <title><%= htmlWebpackPlugin.options.title %></title>
+    <title>APLIKASI ABSENSI - OPERATOR SEKOLAH</title>
+    <link rel="stylesheet" href="<%= BASE_URL %>css/bootstrap.min.css">
   </head>
   <body>
     <noscript>
       <strong>We're sorry but <%= htmlWebpackPlugin.options.title %> doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
     </noscript>
     <div id="app"></div>
+
     <!-- built files will be auto injected -->
+    <script>
+const userAgent = navigator.userAgent.toLowerCase();
+if (userAgent.indexOf(' electron/') > -1) {
+  const path = require('path');
+  const fs = require('fs');
+  
+  let dir = '';
+  if ( ! process.env.NODE_ENV) {
+    dir = path.join(__dirname, '/../../app.asar/js/jquery.min.js');
+  } else {
+    dir = path.join(process.cwd(), '/public/js/jquery.min.js');
+  }
+  window.$ = window.jQuery = require(dir);
+} else {
+  document.write('<script src="js/jquery.min.js"><\/script>');
+}
+    </script>
+    <script src="<%= BASE_URL %>js/bootstrap.bundle.min.js"></script>
   </body>
 </html>
