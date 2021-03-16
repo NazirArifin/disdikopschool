@@ -59,7 +59,7 @@ export default class Api {
   public postResource(type: string, data: any, isNew: boolean|string = true, file?: any): Promise<any> {
     return new Promise((resolve, reject) => {
       const options: AxiosRequestConfig = {
-        params: {}
+        params: {},
       };
       
       if (typeof(isNew) == 'boolean') {

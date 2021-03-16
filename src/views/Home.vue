@@ -109,13 +109,15 @@
                       <thead class="thead-dark">
                         <tr>
                           <th>IP</th>
-                          <th>ComKey</th>
+                          <th>Port</th>
+                          <th>ComKey / SN</th>
                           <th colspan="3"></th>
                         </tr>
                       </thead>
                       <tbody v-if="fpList.length > 0">
                         <tr :key="fp.id" v-for="(fp, i) in fpList">
                           <td class="align-middle" :class="{ 'font-weight-bold': fp.active }">{{fp.ip}}</td>
+                          <td class="align-middle" :class="{ 'font-weight-bold': fp.active }">{{fp.port}}</td>
                           <td class="align-middle" :class="{ 'font-weight-bold': fp.active }">{{fp.keyCom}}</td>
                           <td class="align-middle">
                             <i class="icon-check text-success" v-if="fp.active"></i>
@@ -200,15 +202,21 @@
                 <validation-provider slim name="ip" rules="required|min:8|max:40">
                   <div class="form-group">
                     <label for="ip">Alamat IP</label>
-                    <input type="text" name="ip" id="ip" class="form-control" minlength="8" maxlength="40" required v-model="fpModel.ip">
+                    <input type="text" name="ip" id="ip" class="form-control" minlength="8" maxlength="40" required v-model="fpModel.ip" placeholder="0.0.0.0">
                     <small id="ipHelp" class="form-text text-muted">Alamat IP perangkat Finger Print</small>
                   </div>
                 </validation-provider>
                 <validation-provider slim name="keyCom" rules="required|min:1|max:40">
                   <div class="form-group">
-                    <label for="keyCom">ComKey</label>
+                    <label for="keyCom">Serial Number</label>
                     <input type="text" name="keyCom" id="keyCom" class="form-control" minlength="1" maxlength="40" required v-model="fpModel.keyCom">
-                    <small id="keyComHelp" class="form-text text-muted">Communication Key</small>
+                    <small id="keyComHelp" class="form-text text-muted">Communication Key / Serial Number</small>
+                  </div>
+                </validation-provider>
+                <validation-provider slim name="port" rules="required|min:1|max:8">
+                  <div class="form-group">
+                    <label for="keyCom">Port</label>
+                    <input type="text" name="port" id="port" class="form-control" minlength="1" maxlength="8" required v-model="fpModel.port">
                   </div>
                 </validation-provider>
               </form>
@@ -296,96 +304,105 @@ export default class Home extends Vue {
   private userList: readonly { pin: string; name: string }[] = [];
   private logList: readonly { pin: string; dateTime: string }[] = [];
   async syncronize() {
-    this.$store.dispatch('showSpinner');
+    this.$store.dispatch('showSpinner', 'MEMULAI');
     
-    let xml = await this.fp?.getUser();
-    // let xml = `<GetAllUserInfoResponse><Row><PIN>1</PIN><Name>Ubaidi, S.Kom, M.Kom</Name><Password></Password><Group>1</Group><Privilege>14</Privilege><Card>0</Card><PIN2>1</PIN2><TZ1>0</TZ1><TZ2>0</TZ2><TZ3>0</TZ3></Row></GetAllUserInfoResponse>`;
+    try {
+      this.$store.dispatch('changeSpinnerMessage', 'MEMUAT DATA PEGAWAI');
+      let xml = await this.fp?.getUser();
+      // let xml = `<GetAllUserInfoResponse><Row><PIN>1</PIN><Name>Ubaidi, S.Kom, M.Kom</Name><Password></Password><Group>1</Group><Privilege>14</Privilege><Card>0</Card><PIN2>1</PIN2><TZ1>0</TZ1><TZ2>0</TZ2><TZ3>0</TZ3></Row></GetAllUserInfoResponse>`;
 
-    let data = JSON.parse(convert.xml2json(xml, { compact: true }));
-    const users: { pin: string; name: string }[] = [];
-    if (Object.prototype.hasOwnProperty.call(data, 'GetAllUserInfoResponse')) {
-      if (Object.prototype.hasOwnProperty.call(data.GetAllUserInfoResponse, 'Row')) {
-        const Rows = data.GetAllUserInfoResponse.Row;
-        if (Array.isArray(Rows)) {
-          Rows.forEach(row => {
+      let data = JSON.parse(convert.xml2json(xml, { compact: true }));
+      const users: { pin: string; name: string }[] = [];
+      if (Object.prototype.hasOwnProperty.call(data, 'GetAllUserInfoResponse')) {
+        if (Object.prototype.hasOwnProperty.call(data.GetAllUserInfoResponse, 'Row')) {
+          const Rows = data.GetAllUserInfoResponse.Row;
+          if (Array.isArray(Rows)) {
+            Rows.forEach(row => {
+              users.push({
+                pin: row.PIN._text, name: row.Name._text
+              });
+            });
+          } else {
             users.push({
-              pin: row.PIN._text, name: row.Name._text
+              pin: Rows.PIN._text, name: Rows.Name._text
             });
-          });
-        } else {
-          users.push({
-            pin: Rows.PIN._text, name: Rows.Name._text
-          });
+          }
         }
+        this.userList = Object.freeze(users);
       }
-      this.userList = Object.freeze(users);
-    }
-    
-    xml = await this.fp?.getLog();
-    // xml = `<GetAttLogResponse><Row><PIN>1</PIN><DateTime>2021-03-11 06:51:25</DateTime><Verified>1</Verified><Status>0</Status><WorkCode>0</WorkCode></Row><Row><PIN>1</PIN><DateTime>2021-03-11 13:51:39</DateTime><Verified>1</Verified><Status>0</Status><WorkCode>0</WorkCode></Row><Row><PIN>1</PIN><DateTime>2017-11-01 13:51:42</DateTime><Verified>1</Verified><Status>0</Status><WorkCode>0</WorkCode></Row></GetAttLogResponse>`;
-    
-    data = JSON.parse(convert.xml2json(xml, { compact: true }));
-    const logs: { pin: string; dateTime: string }[] = [];
-    if (Object.prototype.hasOwnProperty.call(data, 'GetAttLogResponse')) {
-      if (Object.prototype.hasOwnProperty.call(data.GetAttLogResponse, 'Row')) {
-        const Rows = data.GetAttLogResponse.Row;
-        if (Array.isArray(Rows)) {
-          Rows.forEach(row => {
+      
+      this.$store.dispatch('changeSpinnerMessage', 'MEMUAT DATA ABSENSI');
+      xml = await this.fp?.getLog();
+      // xml = `<GetAttLogResponse><Row><PIN>1</PIN><DateTime>2021-03-11 06:51:25</DateTime><Verified>1</Verified><Status>0</Status><WorkCode>0</WorkCode></Row><Row><PIN>1</PIN><DateTime>2021-03-11 13:51:39</DateTime><Verified>1</Verified><Status>0</Status><WorkCode>0</WorkCode></Row><Row><PIN>1</PIN><DateTime>2017-11-01 13:51:42</DateTime><Verified>1</Verified><Status>0</Status><WorkCode>0</WorkCode></Row></GetAttLogResponse>`;
+      
+      data = JSON.parse(convert.xml2json(xml, { compact: true }));
+      const logs: { pin: string; dateTime: string }[] = [];
+      if (Object.prototype.hasOwnProperty.call(data, 'GetAttLogResponse')) {
+        if (Object.prototype.hasOwnProperty.call(data.GetAttLogResponse, 'Row')) {
+          const Rows = data.GetAttLogResponse.Row;
+          if (Array.isArray(Rows)) {
+            Rows.forEach(row => {
+              logs.push({
+                pin: row.PIN._text, dateTime: row.DateTime._text
+              });
+            });
+          } else {
             logs.push({
-              pin: row.PIN._text, dateTime: row.DateTime._text
+              pin: Rows.PIN._text, dateTime: Rows.DateTime._text
             });
-          });
-        } else {
-          logs.push({
-            pin: Rows.PIN._text, dateTime: Rows.DateTime._text
-          });
+          }
         }
+        this.logList = Object.freeze(logs);
       }
-      this.logList = Object.freeze(logs);
-    }
 
-    // kita cari log hari ini
-    const todayTime = moment().format('YYYY-MM-DD HH:mm:ss'); 
-    const today = todayTime.split(' ')[0];
-    const pins: string[] = [];
-    const names: string[] = [];
-    const dateTimes: string[] = [];
-    this.logList.filter(v => {
-      return v.dateTime.split(' ')[0] == today;
-    }).forEach(v => {
-      pins.push(v.pin);
-      names.push(this.userList.find(u => u.pin == v.pin)?.name || '');
-      dateTimes.push(v.dateTime);
-    });
-
-    if (pins.length == 0) {
-      alertify.alert('ERROR', '<strong class="text-danger">TIDAK ADA DATA ABSENSI HARI INI</strong>', function() {
-        // do nothing
+      this.$store.dispatch('changeSpinnerMessage', 'MEMPROSES DATA');
+      // kita cari log hari ini
+      const todayTime = moment().format('YYYY-MM-DD HH:mm:ss'); 
+      const today = todayTime.split(' ')[0];
+      const pins: string[] = [];
+      const names: string[] = [];
+      const dateTimes: string[] = [];
+      this.logList.filter(v => {
+        return v.dateTime.split(' ')[0] == today;
+      }).forEach(v => {
+        pins.push(v.pin);
+        names.push(this.userList.find(u => u.pin == v.pin)?.name || '');
+        dateTimes.push(v.dateTime);
       });
-      this.$store.dispatch('hideSpinner');
-      return;
-    }
-    
-    // kirimkan ke server
-    this.apiService.postResource('/sinkron', {
-      pin: pins, name: names, dateTime: dateTimes
-    }, true).then(async data => {
-      this.$store.dispatch('hideSpinner')
-      this.$toast.success(`SUKSES: JUMLAH DATA TERPROSES: ${data.count}`);
-      this.activateIdling();
 
-      // tambahkan di database
-      await this.syncDb.insert({ date: todayTime, count: data.count });
-      this.loadSyncData();
-    }).catch(err => {
-      this.$store.dispatch('hideSpinner');
-      if (err.status == 304) {
-        this.$toast.error('ERROR: Tidak ada perubahan data!');
-        this.activateIdling();
-      } else {
-        this.$toast.error(`ERROR: ${err.status}`);
+      if (pins.length == 0) {
+        alertify.alert('ERROR', '<strong class="text-danger">TIDAK ADA DATA ABSENSI HARI INI</strong>', function() {
+          // do nothing
+        });
+        this.$store.dispatch('hideSpinner');
+        return;
       }
-    });
+      
+      this.$store.dispatch('changeSpinnerMessage', 'MENGIRIM DATA KE SERVER');
+      // kirimkan ke server
+      this.apiService.postResource('/sinkron', {
+        pin: pins, name: names, dateTime: dateTimes
+      }, true).then(async data => {
+        this.$store.dispatch('hideSpinner')
+        this.$toast.success(`SUKSES: JUMLAH DATA TERPROSES: ${data.count}`);
+        this.activateIdling();
+
+        // tambahkan di database
+        await this.syncDb.insert({ date: todayTime, count: data.count });
+        this.loadSyncData();
+      }).catch(err => {
+        this.$store.dispatch('hideSpinner');
+        if (err.status == 304) {
+          this.$toast.error('ERROR: Tidak ada perubahan data!');
+          this.activateIdling();
+        } else {
+          this.$toast.error(`ERROR: ${err.status}`);
+        }
+      });
+    } catch(err) {
+      this.$toast.error(err.toString());
+      this.$store.dispatch('hideSpinner');
+    }
   }
 
 
@@ -398,7 +415,7 @@ export default class Home extends Vue {
     if (this.fpList.length > 0) {
       const item = this.fpList.find((v: FPType) => v.active);
       if (item) {
-        this.fp = new FPSocket(item.ip, item.keyCom);
+        this.fp = new FPSocket(item.ip, item.keyCom, item.port);
       } else {
         // set active yang pertama, mencegah tidak ada mesin yang aktif
         await this.fpDb.update({ active: true }, { id: this.fpList[0].id });
@@ -411,24 +428,22 @@ export default class Home extends Vue {
   private fpModel: FPType = this.resetFpModel();
   private resetFpModel(): FPType {
     return {
-      id: 0, ip: '', keyCom: '0', active: false
+      id: 0, ip: '', keyCom: '0', port: '80', active: false
     };
   }
   async saveFp() {
     if (this.fpModel.id == 0) {
       const insert = await this.fpDb.insert({
-        ip: this.fpModel.ip, keyCom: this.fpModel.keyCom, active: this.fpList.length == 0
+        ip: this.fpModel.ip, keyCom: this.fpModel.keyCom, port: this.fpModel.port, active: this.fpList.length == 0
       });
       if (insert) {
         this.fpModel = this.resetFpModel();
         this.loadFPData();
-        this.$toast.success('SUKSES!');
       }
     } else {
-      await this.fpDb.update({ ip: this.fpModel.ip, keyCom: this.fpModel.keyCom }, { id: this.fpModel.id });
+      await this.fpDb.update({ ip: this.fpModel.ip, keyCom: this.fpModel.keyCom, port: this.fpModel.port }, { id: this.fpModel.id });
       this.fpModel = this.resetFpModel();
       this.loadFPData();
-      this.$toast.success('SUKSES!');
     }
   }
   deleteFp(i: number) {
@@ -437,7 +452,6 @@ export default class Home extends Vue {
         id: this.fpList[i].id
       });
       this.loadFPData();
-      this.$toast.success('SUKSES');
     }, function() {
       // cancel edit
     });
@@ -452,17 +466,24 @@ export default class Home extends Vue {
       }
     }
     await this.fpDb.update({ active: true }, { id: this.fpList[i].id });
-    this.$toast.success('SUKSES');
     this.loadFPData();
   }
   pingFp() {
-    this.$store.dispatch('showSpinner');
+    this.$store.dispatch('showSpinner', 'MEMINTA DATA');
     this.fp?.getClock().then(result => {
-      console.log(result);
       this.$store.dispatch('hideSpinner');
-      alertify.alert('SUKSES', "KONEKSI SUKSES", function() {
-        // do nothing
-      });
+      const data = JSON.parse(convert.xml2json(result, { compact: true }));
+      
+      if (Object.prototype.hasOwnProperty.call(data, 'GetDateResponse')) {
+        if (Object.prototype.hasOwnProperty.call(data.GetDateResponse, 'Row')) {
+          const Row = data.GetDateResponse.Row;
+          const tanggal = Row.Date._text;
+          const time = Row.Time._text;
+          alertify.alert('KONEKSI SUKSES', `<strong class="text-success">BERHASIL MENGAMBIL DATA TANGGAL:</strong><br><small class="text-muted">${tanggal.split('-').reverse().join('/')} ${time}</small>`, function() {
+            // do nothing
+          });   
+        }
+      }
     }).catch(err => {
       this.$store.dispatch('hideSpinner');
       this.$toast.error(`${err.toString()}`);
@@ -473,7 +494,7 @@ export default class Home extends Vue {
   // BAGIAN LAPORAN
   // ----------------------------------------------------------------------------------
   downloadReport() {
-    this.$store.dispatch('showSpinner');
+    this.$store.dispatch('showSpinner', 'MEMPROSES DATA');
     this.apiService.download('/absensi/harian', {
       institution: this.$store.state.user.sekolah.id,
       start: this.reportDate[0],

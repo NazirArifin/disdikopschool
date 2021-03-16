@@ -4,6 +4,7 @@ export interface FPType {
   id?: number;
   ip: string;
   keyCom: string;
+  port: string;
   active: boolean;
 }
 

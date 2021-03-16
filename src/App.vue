@@ -6,13 +6,16 @@
       </span>
     </div>
     <div class="cover" :class="{ hide: ! spinner }">
-      <div class="sk-chase">
-        <div class="sk-chase-dot"></div>
-        <div class="sk-chase-dot"></div>
-        <div class="sk-chase-dot"></div>
-        <div class="sk-chase-dot"></div>
-        <div class="sk-chase-dot"></div>
-        <div class="sk-chase-dot"></div>
+      <div class="d-flex flex-column justify-content-center align-items-center">
+        <div class="sk-chase">
+          <div class="sk-chase-dot"></div>
+          <div class="sk-chase-dot"></div>
+          <div class="sk-chase-dot"></div>
+          <div class="sk-chase-dot"></div>
+          <div class="sk-chase-dot"></div>
+          <div class="sk-chase-dot"></div>
+        </div>
+        <p v-if="spinMessage" class="text-white text-center mt-3 font-weight-bold"><small>{{spinMessage}}</small></p>
       </div>
     </div>
   </div>
@@ -51,6 +54,9 @@ export default class App extends Vue {
   get spinner() {
     return this.$store.state.spinner;
   }
+  get spinMessage() {
+    return this.$store.state.spinMessage;
+  }
 }
 </script>
 
@@ -61,6 +67,7 @@ $simple-line-font-path: '~simple-line-icons/fonts/';
 @import "~vue-toastification/dist/index.css";
 @import "~alertifyjs/build/css/alertify.min.css";
 @import "~alertifyjs/build/css/themes/default.min.css";
+@import '~vue-cool-select/dist/themes/bootstrap.css';
 
 .Vue-Toastification__toast {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -68,6 +75,8 @@ $simple-line-font-path: '~simple-line-icons/fonts/';
 }
 
 #app {
+  overflow-x: auto;
+  height: 100vh;
   overflow-x: hidden;
 }
 
@@ -157,5 +166,9 @@ $simple-line-font-path: '~simple-line-icons/fonts/';
 ::-webkit-scrollbar-thumb {
   border-radius: 0px;
   box-shadow: inset 0 0 6px rgba(0,0,0,0.5); 
+}
+
+.IZ-select__input input {
+  font-size: .9375rem !important;
 }
 </style>

@@ -26,13 +26,18 @@ const getDatabase = () => {
         dataType: DATA_TYPE.String,
         default: '0'
       },
+      port: {
+        notNull: true,
+        dataType: DATA_TYPE.String,
+        default: '80'
+      },
       active: {
         notNull: true,
         dataType: DATA_TYPE.Boolean,
         default: false
       }
     },
-    version: 3
+    version: 4
   }
   const tblSinkron: ITable = {
     name: 'Sinkron',

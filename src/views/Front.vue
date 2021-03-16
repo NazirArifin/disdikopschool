@@ -22,7 +22,7 @@
                   </validation-provider>
                 </div>
                 <div class="form-group row">
-                  <label for="password" class="col-sm-4 col-form-label">PASSWORD</label>
+                  <label for="password" class="col-sm-4 col-form-label">PASSWORDS</label>
                   <validation-provider tag="div" class="col-sm-8" rules="required|min:6|max:20">
                     <input type="password" v-model="user.password" required minlength="6" maxlength="20" name="password" id="password" class="form-control">
                   </validation-provider>
@@ -71,13 +71,13 @@ export default class Front extends Vue {
             type: 'changeUser', field: key, value: data[key]
           });
         }
-        this.$router.replace('/home');
+        this.$router.replace(data.sekolah ? '/home' : '/home2');
       });
     }
   }
 
   async tryLogin() {
-    this.$store.dispatch('showSpinner');
+    this.$store.dispatch('showSpinner', 'MENGECEK AKUN');
     Session.login(this.user).then(data => {
       this.$store.dispatch('hideSpinner');
       for (const key in data) {
@@ -85,7 +85,7 @@ export default class Front extends Vue {
           type: 'changeUser', field: key, value: data[key]
         });
       }
-      this.$router.replace('/home');
+      this.$router.replace(data.sekolah ? '/home' : '/home2');
     }).catch(err => {
       this.$store.dispatch('hideSpinner');
       if (err && err.data) {

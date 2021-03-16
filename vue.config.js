@@ -14,5 +14,14 @@ module.exports = {
         localesToKeep: ['id']
       })
     ]
+  },
+  pluginOptions: {
+    electronBuilder: {
+      builderOptions: {
+        win: {
+          icon: './icon.ico'
+        }
+      }
+    }
   }
 }

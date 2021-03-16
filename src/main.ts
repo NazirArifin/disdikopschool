@@ -2,12 +2,14 @@ import Vue from 'vue'
 import App from './App.vue'
 import router from './router'
 import store from './store'
-import moment from 'moment';
+import moment from 'moment'
+import { CoolSelectPlugin } from 'vue-cool-select'
 
 import Toast from 'vue-toastification';
 moment.locale('id');
 
 Vue.use(Toast);
+Vue.use(CoolSelectPlugin);
 
 // Format tanggal dengan moment
 Vue.filter('formatdate', function(value: string, format: string) {
