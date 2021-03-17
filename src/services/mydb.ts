@@ -8,6 +8,15 @@ export interface FPType {
   active: boolean;
 }
 
+export interface PegawaiType {
+  id?: number;
+  pin: string;
+  nip: string;
+  nama: string;
+  namaSingkat: string;
+  active: boolean;
+}
+
 export interface SyncType {
   id?: number;
   date: string;
@@ -36,7 +45,7 @@ export class MyDb {
     });
   }
 
-  insert(value: FPType|SyncType, withInsertedId = false): Promise<any> {
+  insert(value: FPType|SyncType|PegawaiType, withInsertedId = false): Promise<any> {
     return new Promise((resolve, reject) => {
       this.conn?.insert({
         into: this.tableName,
@@ -71,6 +80,14 @@ export class MyDb {
       }).then(() => {
         resolve(true);
       }).catch(err => reject(err));
+    });
+  }
+
+  clear(): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this.conn?.clear(this.tableName).then(() => {
+        resolve(true);
+      });
     });
   }
 }

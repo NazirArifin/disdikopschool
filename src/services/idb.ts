@@ -9,35 +9,65 @@ import { ITable, DATA_TYPE } from 'jsstore'
 export const conn = new JsStore.Connection();
 
 const getDatabase = () => {
-  const tblFp: ITable = {
-    name: 'FingerPrint',
+  // const tblFp: ITable = {
+  //   name: 'FingerPrint',
+  //   columns: {
+  //     id: {
+  //       primaryKey: true,
+  //       autoIncrement: true
+  //     },
+  //     ip: {
+  //       notNull: true,
+  //       dataType: DATA_TYPE.String,
+  //       default: ''
+  //     },
+  //     keyCom: {
+  //       notNull: true,
+  //       dataType: DATA_TYPE.String,
+  //       default: '0'
+  //     },
+  //     port: {
+  //       notNull: true,
+  //       dataType: DATA_TYPE.String,
+  //       default: '80'
+  //     },
+  //     active: {
+  //       notNull: true,
+  //       dataType: DATA_TYPE.Boolean,
+  //       default: false
+  //     }
+  //   },
+  //   version: 1
+  // }
+  const tblPegawai: ITable = {
+    name: 'Pegawai',
     columns: {
       id: {
         primaryKey: true,
         autoIncrement: true
       },
-      ip: {
+      pin: {
         notNull: true,
         dataType: DATA_TYPE.String,
-        default: ''
       },
-      keyCom: {
+      nip: {
         notNull: true,
         dataType: DATA_TYPE.String,
-        default: '0'
       },
-      port: {
+      nama: {
         notNull: true,
-        dataType: DATA_TYPE.String,
-        default: '80'
+        dataType: DATA_TYPE.String
+      },
+      namaSingkat: {
+        notNull: true,
+        dataType: DATA_TYPE.String
       },
       active: {
         notNull: true,
         dataType: DATA_TYPE.Boolean,
-        default: false
+        default: true
       }
-    },
-    version: 4
+    }
   }
   const tblSinkron: ITable = {
     name: 'Sinkron',
@@ -54,11 +84,11 @@ const getDatabase = () => {
         dataType: DATA_TYPE.Number
       }
     },
-    version: 2
+    version: 1
   }
   const dataBase = {
     name: 'dbApp',
-    tables: [tblFp, tblSinkron]
+    tables: [tblPegawai, tblSinkron]
   };
   return dataBase;
 };

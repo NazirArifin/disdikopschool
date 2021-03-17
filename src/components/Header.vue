@@ -5,12 +5,14 @@
       <p class="font-weight-bold">{{dateToday}}<br>{{timeToday}} WIB</p>
     </div>
     <div class="col-md-4 offset-md-4 text-right right-part">
+      <button type="button" class="btn btn-outline-info py-2 mr-2" title="setting database" data-toggle="modal" data-target="#fp-modal"><i class="icon-settings"></i></button>
       <button class="btn btn-lg btn-danger shadow-sm py-2" type="button" v-on:click="logout()">Hapus Session / Keluar</button>
     </div>
   </div>
 </template>
 
 <script lang="ts">
+import { Database } from '@/helpers/db';
 import Session from '@/helpers/session';
 import moment from 'moment';
 import { Component, Vue, Prop } from 'vue-property-decorator'
@@ -25,6 +27,7 @@ export default class Header extends Vue {
   logout() {
     Session.logout();
     this.$router.replace('/');
+    Database.close();
   }
 
   mounted() {

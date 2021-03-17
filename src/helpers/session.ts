@@ -24,7 +24,6 @@ export default class Session {
 
   public static logout() {
     localStorage.removeItem('token');
-    localStorage.clear();
   }
 
   public static getMe(): Promise<any> {

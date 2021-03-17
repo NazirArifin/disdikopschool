@@ -17,7 +17,7 @@ async function createWindow() {
 
   // Create the browser window.
   win = new BrowserWindow({
-    width: 1000,
+    width: 1100,
     height: 600,
     title: 'Aplikasi Absensi',
     fullscreenable: false,
@@ -62,6 +62,18 @@ app.on('activate', () => {
   // dock icon is clicked and there are no other windows open.
   if (BrowserWindow.getAllWindows().length === 0) createWindow()
 })
+
+const gotTheLock = app.requestSingleInstanceLock();
+if ( ! gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    if (win) {
+      if (win.isMaximized()) win.restore();
+      win.focus();
+    }
+  });
+}
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.

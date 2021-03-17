@@ -94,7 +94,11 @@ export default class Front extends Vue {
           return;
         }
       }
-      this.$toast.error('Login Gagal');
+      if (err) {
+        this.$toast.error(`LOGIN ERROR: ${err.toString()}`);
+      } else {
+        this.$toast.error('Login Gagal');
+      }
     });
   }
 

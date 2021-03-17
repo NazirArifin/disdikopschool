@@ -13,7 +13,7 @@ module.exports = {
       new MomentLocalesPlugin({
         localesToKeep: ['id']
       })
-    ]
+    ],
   },
   pluginOptions: {
     electronBuilder: {
