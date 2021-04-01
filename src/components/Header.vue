@@ -5,7 +5,7 @@
       <p class="font-weight-bold">{{dateToday}}<br>{{timeToday}} WIB</p>
     </div>
     <div class="col-md-4 offset-md-4 text-right right-part">
-      <button type="button" class="btn btn-outline-info py-2 mr-2" title="setting database" data-toggle="modal" data-target="#fp-modal"><i class="icon-settings"></i></button>
+      <button v-if="sekolah != 'KOORDINATOR KECAMATAN'" type="button" class="btn btn-outline-info py-2 mr-2" title="setting database" data-toggle="modal" data-target="#fp-modal"><i class="icon-settings"></i></button>
       <button class="btn btn-lg btn-danger shadow-sm py-2" type="button" v-on:click="logout()">Hapus Session / Keluar</button>
     </div>
   </div>
@@ -28,6 +28,11 @@ export default class Header extends Vue {
     Session.logout();
     this.$router.replace('/');
     Database.close();
+    document.title = `APLIKASI ABSENSI ${this.$store.state.version} - OPERATOR SEKOLAH`;
+  }
+
+  async created() {
+    document.title = `APLIKASI ABSENSI ${this.$store.state.version} - ${this.sekolah}`;
   }
 
   mounted() {

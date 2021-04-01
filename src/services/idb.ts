@@ -67,7 +67,8 @@ const getDatabase = () => {
         dataType: DATA_TYPE.Boolean,
         default: true
       }
-    }
+    },
+    version: 2
   }
   const tblSinkron: ITable = {
     name: 'Sinkron',
@@ -84,7 +85,7 @@ const getDatabase = () => {
         dataType: DATA_TYPE.Number
       }
     },
-    version: 1
+    version: 2
   }
   const dataBase = {
     name: 'dbApp',

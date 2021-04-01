@@ -149,6 +149,8 @@ export default class Api {
     return new Promise((resolve, reject) => {
       ipcRenderer.send('download-item', { url: this.apiUrl + url + '?' + $.param(args) });
       ipcRenderer.on('download-success', (event, arg) => {
+        // console.log(event);
+        // console.log(arg);
         resolve(args);
       });
     });

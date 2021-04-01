@@ -5,7 +5,7 @@ import { app, protocol, BrowserWindow, Menu, ipcMain } from 'electron'
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 import installExtension, { VUEJS_DEVTOOLS } from 'electron-devtools-installer'
 const isDevelopment = process.env.NODE_ENV !== 'production'
-import { download } from 'electron-dl';
+import { download } from 'electron-dl'
 
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([
@@ -28,7 +28,7 @@ async function createWindow() {
       // nodeIntegration: (process.env
       //     .ELECTRON_NODE_INTEGRATION as unknown) as boolean
       nodeIntegration: true,
-      enableRemoteModule: true,
+      enableRemoteModule: true
     }
   })
 
@@ -114,4 +114,8 @@ ipcMain.on('download-item', async (event, { url }) => {
       event.sender.send('download-success', url);
     }
   });
+});
+
+ipcMain.handle('get-version', async (event) => {
+  return app.getVersion();
 });

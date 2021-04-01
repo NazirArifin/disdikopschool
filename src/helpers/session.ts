@@ -15,9 +15,11 @@ export default class Session {
       Session.api.postResource('/login', user).then(data => {
         const token = data.token;
         localStorage.setItem('token', token);
-        Session.api.getResource('/saya').then(data => {
-          resolve(data);
-        }).catch(err => reject(err));
+        setTimeout(() => {
+          Session.api.getResource('/saya').then(data => {
+            resolve(data);
+          }).catch(err => reject(err));
+        }, 700);
       }).catch(err => reject(err));
     });
   }

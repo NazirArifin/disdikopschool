@@ -7,6 +7,7 @@ export default new Vuex.Store({
   state: {
     spinner: false,
     spinMessage: '',
+    version: '',
     user: {}
   },
   mutations: {
@@ -24,6 +25,9 @@ export default new Vuex.Store({
     },
     resetUser(state) {
       state.user = {};
+    },
+    setVersion(state, payload) {
+      state.version = payload;
     }
   },
   actions: {
@@ -38,6 +42,9 @@ export default new Vuex.Store({
     },
     changeSpinnerMessage({ commit }, payload) {
       commit('changeSpinnerMessage', payload);
+    },
+    setVersion({ commit }, payload) {
+      commit('setVersion', payload);
     }
   },
   modules: {

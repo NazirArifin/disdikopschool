@@ -3,6 +3,7 @@ const webpack = require('webpack');
 const MomentLocalesPlugin = require('moment-locales-webpack-plugin')
 
 module.exports = {
+  productionSourceMap: false,
   configureWebpack: {
     target: "electron-renderer",
     plugins: [
@@ -18,6 +19,7 @@ module.exports = {
   pluginOptions: {
     electronBuilder: {
       builderOptions: {
+        publish: ['github'],
         win: {
           icon: './icon.ico'
         }

@@ -64,7 +64,7 @@
                     <table class="table mb-0">
                       <thead class="thead-dark">
                         <tr>
-                          <th title="pegawai ikut disinkronkan"><i class="icon-refresh"></i></th>
+                          <th title="pegawai ikut disinkronkan"><i class="icon-list"></i></th>
                           <th>NIP</th>
                           <th>NAMA</th>
                           <th>ALIAS</th>
@@ -174,39 +174,41 @@
                 <validation-provider slim name="host" rules="required|min:4|max:40">
                   <div class="form-group">
                     <label for="ip">HOST</label>
-                    <input type="text" name="host" id="host" class="form-control" minlength="4" maxlength="40" required v-model="dbConfig.host" placeholder="Nama Host">
+                    <input type="text" name="host" id="host" class="form-control" minlength="4" maxlength="40" required v-model="dbConfig.host" placeholder="Nama Host" :disabled="checkingConn">
                   </div>
                 </validation-provider>
                 <validation-provider slim name="port" rules="required|min:2|max:5">
                   <div class="form-group">
                     <label for="port">PORT</label>
-                    <input type="text" name="port" id="port" class="form-control" minlength="2" maxlength="5" required v-model="dbConfig.port" placeholder="Port Database">
+                    <input type="text" name="port" id="port" class="form-control" minlength="2" maxlength="5" required v-model="dbConfig.port" placeholder="Port Database" :disabled="checkingConn">
                   </div>
                 </validation-provider>
                 <validation-provider slim name="database" rules="required|min:2|max:40">
                   <div class="form-group">
                     <label for="database">Nama Database</label>
-                    <input type="text" name="database" id="database" class="form-control" minlength="2" maxlength="40" required v-model="dbConfig.database" placeholder="Nama Database">
+                    <input type="text" name="database" id="database" class="form-control" minlength="2" maxlength="40" required v-model="dbConfig.database" placeholder="Nama Database" :disabled="checkingConn">
                   </div>
                 </validation-provider>
                 <validation-provider slim name="user" rules="required|min:2|max:40">
                   <div class="form-group">
-                    <label for="database">User Database</label>
-                    <input type="text" name="user" id="user" class="form-control" minlength="2" maxlength="40" required v-model="dbConfig.user" placeholder="User Database">
+                    <label for="user">User Database</label>
+                    <input type="text" name="user" id="user" class="form-control" minlength="2" maxlength="40" required v-model="dbConfig.user" placeholder="User Database" :disabled="checkingConn">
                   </div>
                 </validation-provider>
-                 <validation-provider slim name="password" rules="min:2|max:40">
+                <validation-provider slim name="password" rules="min:2|max:40">
                   <div class="form-group">
                     <label for="password">Password Database</label>
-                    <input type="text" name="password" id="password" class="form-control" minlength="2" maxlength="40" v-model="dbConfig.password" placeholder="Password Database">
+                    <input type="text" name="password" id="password" class="form-control" minlength="2" maxlength="40" v-model="dbConfig.password" placeholder="Password Database" :disabled="checkingConn">
                   </div>
                 </validation-provider>
               </form>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal / Tutup</button>
-              <button type="button" class="btn btn-warning" v-on:click="checkDbConn()">Tes Koneksi</button>
-              <button type="button" data-dismiss="modal" class="btn btn-primary shadow-sm" v-on:click="saveSetting()" :disabled="invalid">Simpan Pengaturan</button>
+              <button type="button" class="btn btn-secondary" data-dismiss="modal" :disabled="checkingConn">Batal / Tutup</button>
+              <button type="button" class="btn btn-warning" v-on:click="checkDbConn()" :disabled="checkingConn">
+                <span v-if="checkingConn"><i class="icon-clock"></i> </span> Tes Koneksi
+              </button>
+              <button type="button" data-dismiss="modal" class="btn btn-primary shadow-sm" v-on:click="saveSetting()" :disabled="invalid || checkingConn">Simpan Pengaturan</button>
             </div>
           </div>
         </div>
@@ -268,13 +270,29 @@ export default class Home extends Vue {
     
     this.loadPegawai();
   }
+
+  private checkingConn = false;
   async checkDbConn() {
+    this.checkingConn = true;
     try {
+      Database.close();
+      Database.init(this.dbConfig);
+
       const v = await Database.query(`SHOW VARIABLES LIKE "version"`);
-      alertify.alert('KONEKSI SUKSES', '<strong class="text-success">Versi MySQL: ' + v[0].Value + '</strong>', function() {
+      const version = v[0].Value;
+      const t = await Database.query(`SHOW TABLES`);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const tables = t.map((row: any) => {
+        return row.Tables_in_fpdb;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      }).filter((row: any) => row == 'att_log' || row == 'pegawai');
+
+      alertify.alert('KONEKSI SUKSES', `<strong class="text-success">Versi MySQL: ${version}</strong><br>&bull; Tabel absensi <i class="icon-${tables.indexOf('att_log') != -1 ? 'check' : 'close'}"></i><br>&bull; Tabel pegawai <i class="icon-${tables.indexOf('pegawai') != -1 ? 'check' : 'close'}"></i>`, function() {
         // do nothing
       });
+      this.checkingConn = false;
     } catch(err) {
+      this.checkingConn = false;
       alertify.alert('ERROR', '<strong class="text-danger">KONEKSI GAGAL</strong>', function() {
         // do nothing
       });
@@ -330,14 +348,14 @@ export default class Home extends Vue {
     // kita cari log hari ini
     const todayTime = moment().format('YYYY-MM-DD HH:mm:ss'); 
     const today = todayTime.split(' ')[0];
-    const nips: string[] = [];
+    const pins: string[] = [];
     const names: string[] = [];
     const aliases: string[] = [];
     const dateTimes: string[] = [];
 
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const logs: any[] = await Database.query(`SELECT scan_date, pin FROM att_log WHERE DATE(scan_date) = ?`, [today]);
+      const logs: any[] = await Database.query(`SELECT scan_date, pin FROM att_log WHERE DATE(scan_date) = ? ORDER BY scan_date`, [today]);
       if (logs.length == 0) {
         alertify.alert('ERROR', '<strong class="text-danger">TIDAK ADA DATA ABSENSI HARI INI</strong>', function() {
           // do nothing
@@ -350,19 +368,18 @@ export default class Home extends Vue {
         const p = this.pegawaiList.find((k: PegawaiType) => k.pin == v.pin);
         return p?.active
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      }).map((v: any) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      }).forEach((v: any) => {
         const p = this.pegawaiList.find((k: PegawaiType) => k.pin == v.pin);
-        nips.push(p?.nip || '');
+        pins.push(p?.nip || '');
         names.push(p?.nama || '');
         aliases.push(p?.namaSingkat || '');
         dateTimes.push(moment(v.scan_date).format('YYYY-MM-DD HH:mm:ss'));
       });
-      
+           
       this.$store.dispatch('changeSpinnerMessage', 'MENGIRIM DATA KE SERVER');
       // kirimkan ke server
       this.apiService.postResource('/sinkron', {
-        pin: nips, name: names, alias: aliases, dateTime: dateTimes
+        pin: pins, name: names, alias: aliases, dateTime: dateTimes
       }, true).then(async data => {
         this.$store.dispatch('hideSpinner')
         // tambahkan di database
@@ -380,6 +397,7 @@ export default class Home extends Vue {
         this.activateIdling();
       });
     } catch(err) {
+      this.$store.dispatch('hideSpinner');
       this.$toast.error(err.toString());
     }
   }
@@ -392,9 +410,15 @@ export default class Home extends Vue {
     this.pegawaiList = [];
     try {
       const rows = await Database.query(`SELECT pegawai_pin, pegawai_nip, pegawai_nama, pegawai_alias FROM pegawai`);
-        const empDb: any[] = rows.map((v: any) => {
-        return { pin: v.pegawai_pin, nip: v.pegawai_nip, nama: v.pegawai_nama, alias: v.pegawai_alias };
+      if (rows.length == 0) {
+        this.$toast.error('Data pegawai kosong, pastikan sudah di unduh dari mesin fingerprint!');
+        return;
+      }
+      
+      const empDb: any[] = rows.map((v: any) => {
+        return { pin: v.pegawai_pin, nip: v.pegawai_nip || v.pegawai_pin, nama: v.pegawai_nama, alias: v.pegawai_alias };
       });
+
       let empIdb: PegawaiType[] = await this.empDb.getAll();
       let change = false;
       if (empDb.length > empIdb.length) {
@@ -449,26 +473,23 @@ export default class Home extends Vue {
   // BAGIAN LAPORAN
   // ----------------------------------------------------------------------------------
   downloadReport() {
-    this.$store.dispatch('showSpinner', 'MEMPROSES DATA');
+    this.$store.dispatch('showSpinner', 'MEN-GENERATE LAPORAN');
     this.apiService.download('/absensi/harian', {
       institution: this.$store.state.user.sekolah.id,
       start: this.reportDate[0],
       end: this.reportDate[1],
       excel: 3
     }).then(() => {
+      // this.isDownloading = false;
       this.$store.dispatch('hideSpinner');
     }).catch(() => {
-      this.$store.dispatch('hideSpinner');
+      // this.isDownloading = false;
     });
   }
 
   mounted() {
     this.loadPegawai();
     this.loadSyncData();
-  }
-  
-  created() {
-    document.title = `APLIKASI ABSENSI - ${this.sekolah}`;
   }
 }
 </script>

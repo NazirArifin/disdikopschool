@@ -42,7 +42,7 @@ export class Database {
   }
 
   public static close(): void {
-    this.db.end();
+    if (this.db) this.db.end();
     this.db = null;
   }
 }

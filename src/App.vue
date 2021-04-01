@@ -1,5 +1,11 @@
 <template>
   <div id="app">
+    <section id="offline-notify" class="shadow notify hide bg-warning p-3 text-white text-center">
+      <h3>Anda sedang OFFLINE</h3>
+      <div class="notify-content">
+        Saat ini Anda terdeteksi tidak memiliki koneksi internet aktif. Periksa jaringan internet Anda
+      </div>
+    </section>
     <div class="container-fluid pl-0 pr-0">
       <span v-showRightClick>
         <router-view/>
@@ -25,14 +31,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { remote } from 'electron';
 import { Component, Vue } from 'vue-property-decorator'
+import { ipcRenderer } from 'electron'
 
 @Component({
   directives: {
     showRightClick: {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       bind: (_el: Element, _binding: any) => {
-        const isDevelopment = process.env.NODE_ENV !== 'production';
-        if (isDevelopment) {
+        // const isDevelopment = process.env.NODE_ENV !== 'production';
+        // if (isDevelopment) {
           const { Menu, MenuItem } = remote;
           let rightClickPosition: { x: number; y: number } = { x: 0, y: 0 };
           const menu = new Menu();
@@ -45,7 +52,7 @@ import { Component, Vue } from 'vue-property-decorator'
             rightClickPosition = { x: e.x, y: e.y };
             menu.popup();
           }, false);
-        }
+        // }
       }
     }
   }
@@ -56,6 +63,28 @@ export default class App extends Vue {
   }
   get spinMessage() {
     return this.$store.state.spinMessage;
+  }
+
+  checkOnline() {
+    const div = document.getElementById('offline-notify');
+    if (navigator.onLine) {
+      if ( ! div?.classList.contains('hide')) {
+        div?.classList.add('hide');
+      }
+    } else {
+      if (div?.classList.contains('hide')) {
+        div?.classList.remove('hide');
+      }
+    }
+    setTimeout(() => {
+      this.checkOnline();
+    }, 10000);
+  }
+
+  async mounted() {
+    const version = await ipcRenderer.invoke('get-version');
+    this.$store.dispatch('setVersion', version);
+    this.checkOnline();
   }
 }
 </script>
@@ -132,6 +161,18 @@ $simple-line-font-path: '~simple-line-icons/fonts/';
   } 100%, 0% {
     transform: scale(1.0); 
   } 
+}
+
+.notify {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  opacity: .8;
+  &.hide {
+    display: none;
+  }
 }
 
 .cover {
