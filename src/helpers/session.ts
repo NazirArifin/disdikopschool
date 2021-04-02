@@ -9,17 +9,43 @@ export default class Session {
     }
   }
 
+  private static fetchSaya(token: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const url = Session.api.url + '/saya';
+      fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }).then(async response => {
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.indexOf('application/json') !== -1) {
+          const data = await response.json();
+          resolve(data);
+        } else {
+          const text = await response.text();
+          reject(text);
+        }
+      });
+    });
+  }
+
   public static login(user: any): Promise<any> {
     return new Promise((resolve, reject) => {
       Session.init();
       Session.api.postResource('/login', user).then(data => {
         const token = data.token;
         localStorage.setItem('token', token);
-        setTimeout(() => {
-          Session.api.getResource('/saya').then(data => {
+        const url = Session.api.url + '/saya';
+        this.fetchSaya(token).then(data => {
+          resolve(data);
+        }).catch(text => {
+          // coba lagi
+          this.fetchSaya(token).then(data => {
             resolve(data);
-          }).catch(err => reject(err));
-        }, 700);
+          }).catch(text => {
+            reject(text);
+          });
+        });
       }).catch(err => reject(err));
     });
   }

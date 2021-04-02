@@ -28,7 +28,8 @@ async function createWindow() {
       // nodeIntegration: (process.env
       //     .ELECTRON_NODE_INTEGRATION as unknown) as boolean
       nodeIntegration: true,
-      enableRemoteModule: true
+      enableRemoteModule: true,
+      webSecurity: false
     }
   })
 
@@ -62,6 +63,8 @@ app.on('activate', () => {
   // dock icon is clicked and there are no other windows open.
   if (BrowserWindow.getAllWindows().length === 0) createWindow()
 })
+
+app.commandLine.appendSwitch('disable-features', 'OutOfBlinkCors');
 
 const gotTheLock = app.requestSingleInstanceLock();
 if ( ! gotTheLock) {
@@ -106,7 +109,6 @@ if (isDevelopment) {
 }
 
 ipcMain.on('download-item', async (event, { url }) => {
-  console.log(url);
   const win = BrowserWindow.getFocusedWindow();
   await download(win, url, {
     saveAs: true,
@@ -118,4 +120,18 @@ ipcMain.on('download-item', async (event, { url }) => {
 
 ipcMain.handle('get-version', async (event) => {
   return app.getVersion();
+});
+
+ipcMain.handle('get-app-path', async (event) => {
+  const path = require('path');
+  const appPath = path.join(app.getPath('appData'), app.getName(), 'IndexedDB');
+  const fs = require('fs');
+  fs.rmdir(appPath, { recursive: true }, (error: any) => {
+    if (error) {
+      console.log(error);
+    }
+    app.relaunch();
+    app.exit();
+  });
+
 });

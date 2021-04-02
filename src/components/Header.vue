@@ -16,6 +16,8 @@ import { Database } from '@/helpers/db';
 import Session from '@/helpers/session';
 import moment from 'moment';
 import { Component, Vue, Prop } from 'vue-property-decorator'
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const alertify = require('alertifyjs');
 
 @Component
 export default class Header extends Vue {
@@ -35,14 +37,26 @@ export default class Header extends Vue {
     document.title = `APLIKASI ABSENSI ${this.$store.state.version} - ${this.sekolah}`;
   }
 
+  fetchDateTime() {
+    fetch(`http://worldtimeapi.org/api/timezone/Asia/Jakarta`).then(response => response.json()).then(data => {
+      const dateApi = moment(data.datetime).format('dddd, DD MMMM YYYY').toUpperCase();
+      if (dateApi != this.dateToday) {
+        alertify.alert('ERROR', '<strong class="text-danger">TANGGAL KOMPUTER TIDAK VALID!</strong>', function() {
+          // do nothing
+        });
+      }
+    });
+  }
+
   mounted() {
     this.dateToday = moment().format('dddd, DD MMMM YYYY').toUpperCase();
-    this.timeToday = moment().format('hh:mm').toUpperCase();
+    this.timeToday = moment().format('HH:mm');
+    this.fetchDateTime(); 
 
     setInterval(() => {
       const m = moment();
       this.dateToday = m.format('dddd, DD MMMM YYYY').toUpperCase();
-      this.timeToday = m.format('hh:mm');
+      this.timeToday = m.format('HH:mm');
     }, 1000);
   }
 }

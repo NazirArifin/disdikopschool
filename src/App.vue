@@ -32,14 +32,16 @@
 import { remote } from 'electron';
 import { Component, Vue } from 'vue-property-decorator'
 import { ipcRenderer } from 'electron'
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const Mousetrap = require('mousetrap')
 
 @Component({
   directives: {
     showRightClick: {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      bind: (_el: Element, _binding: any) => {
-        // const isDevelopment = process.env.NODE_ENV !== 'production';
-        // if (isDevelopment) {
+      bind: (_el: Element, _binding: any, vnode: any) => {
+        Mousetrap.bind('ctrl+d+v+p', function() {
+          vnode.context.$toast.success('Developer mode has been changed');
           const { Menu, MenuItem } = remote;
           let rightClickPosition: { x: number; y: number } = { x: 0, y: 0 };
           const menu = new Menu();
@@ -52,7 +54,7 @@ import { ipcRenderer } from 'electron'
             rightClickPosition = { x: e.x, y: e.y };
             menu.popup();
           }, false);
-        // }
+        });
       }
     }
   }

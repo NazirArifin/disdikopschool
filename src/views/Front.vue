@@ -14,7 +14,7 @@
         <div class="card bg-light mt-3 py-1">
           <div class="card-body shadow-sm">
             <validation-observer ref="loginForm" v-slot="{ invalid }">
-              <form role="form" class="form-horizontal">
+              <form role="form" novalidate class="form-horizontal">
                 <div class="form-group row">
                   <label for="nip" class="col-sm-4 col-form-label">USERNAME</label>
                   <validation-provider tag="div" class="col-sm-8" rules="required|min:5|max:20">
@@ -38,6 +38,11 @@
         </div>
       </div>
     </div>
+    <div class="row">
+      <div class="col-md-6 offset-md-3">
+        <button v-on:click="resetData()" title="reset ulang data aplikasi" type="button" class="btn btn-sm btn-link" style="text-decoration:none"><small><i class="icon-refresh"></i></small></button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -47,6 +52,9 @@ import { ValidationProvider, extend, ValidationObserver } from 'vee-validate'
 import { required, max, min } from 'vee-validate/dist/rules'
 import Api from '@/helpers/api'
 import Session from '@/helpers/session'
+import { ipcRenderer } from 'electron'
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const alertify = require('alertifyjs')
 
 extend('required', required);
 extend('max', max);
@@ -100,6 +108,15 @@ export default class Front extends Vue {
         this.$toast.error('Login Gagal');
       }
     });
+  }
+
+  resetData() {
+    alertify.confirm('Clear Data', 'Apakah Anda yakin akan mereset ulang data lokal aplikasi Anda?', async () => {
+      localStorage.clear();
+      await ipcRenderer.invoke('get-app-path');
+    }, function() {
+      // nothing
+    })
   }
 
   mounted() {
