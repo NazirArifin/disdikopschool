@@ -135,6 +135,12 @@ export default class Front extends Vue {
       console.log('Update available');
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ipcRenderer.on('update_error', (event: any, data: any) => {
+      console.log(event);
+      console.log(data);
+    });
+
     ipcRenderer.on('update_downloaded', () => {
       ipcRenderer.removeAllListeners('update_downloaded');
       console.log('Update downloaded');

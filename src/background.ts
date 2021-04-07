@@ -123,7 +123,9 @@ autoUpdater.on('update-downloaded', () => {
 });
 
 autoUpdater.on('error', error => {
-  console.log(error);
+  if (win) {
+    win.webContents.send('update_error', error);
+  }
 });
 
 ipcMain.on('download-item', async (event, { url }) => {
