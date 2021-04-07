@@ -343,7 +343,8 @@ export default class Home extends Vue {
   private userList: readonly { pin: string; name: string }[] = [];
   private logList: readonly { pin: string; dateTime: string }[] = [];
   async syncronize() {
-    this.$store.dispatch('changeSpinnerMessage', 'MENGAMBIL ABSENSI');
+    // this.$store.dispatch('changeSpinnerMessage', 'MENGAMBIL ABSENSI');
+    this.$store.dispatch('showSpinner', 'MENGAMBIL ABSENSI');
     
     // kita cari log hari ini
     const todayTime = moment().format('YYYY-MM-DD HH:mm:ss'); 

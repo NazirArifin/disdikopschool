@@ -19,7 +19,13 @@ module.exports = {
   pluginOptions: {
     electronBuilder: {
       builderOptions: {
-        publish: ['github'],
+        publish: [{
+          provider: 'github',
+          private: true,
+          owner: 'NazirArifin',
+          repo: 'disdikopschool',
+          token: 'a49796418030f9a4b36604d9e7c884a6a6b6d3c7'
+        }],
         win: {
           icon: './icon.ico'
         }

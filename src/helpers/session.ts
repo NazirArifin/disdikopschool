@@ -54,12 +54,27 @@ export default class Session {
     localStorage.removeItem('token');
   }
 
+  // kita coba 3 kali
   public static getMe(): Promise<any> {
     return new Promise((resolve, reject) => {
       Session.init();
-      Session.api.getResource('/saya').then(data => {
+      const token = localStorage.getItem('token') || '';
+      this.fetchSaya(token).then(data => {
         resolve(data);
-      }).catch(err => reject(err));
+      }).catch(text => {
+        this.fetchSaya(token).then(data => {
+          resolve(data);
+        }).catch(text => {
+          this.fetchSaya(token).then(data => {
+            resolve(data);
+          }).catch(text => {
+            reject(text);
+          })
+        });
+      });
+      // Session.api.getResource('/saya').then(data => {
+      //   resolve(data);
+      // }).catch(err => reject(err));
     });
   }
 

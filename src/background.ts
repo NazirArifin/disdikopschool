@@ -6,6 +6,7 @@ import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 import installExtension, { VUEJS_DEVTOOLS } from 'electron-devtools-installer'
 const isDevelopment = process.env.NODE_ENV !== 'production'
 import { download } from 'electron-dl'
+import { autoUpdater } from 'electron-updater'
 
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([
@@ -42,6 +43,7 @@ async function createWindow() {
     createProtocol('app')
     // Load the index.html when not in development
     win.loadURL('app://./index.html')
+    autoUpdater.checkForUpdatesAndNotify()
   }
 
   win.on('closed', () => {
@@ -107,6 +109,22 @@ if (isDevelopment) {
     })
   }
 }
+
+autoUpdater.on('update-available', () => {
+  if (win) {
+    win.webContents.send('update_available');
+  }
+});
+
+autoUpdater.on('update-downloaded', () => {
+  if (win) {
+    win.webContents.send('update_downloaded');
+  }
+});
+
+autoUpdater.on('error', error => {
+  console.log(error);
+});
 
 ipcMain.on('download-item', async (event, { url }) => {
   const win = BrowserWindow.getFocusedWindow();

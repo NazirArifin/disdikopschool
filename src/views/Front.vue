@@ -2,7 +2,7 @@
   <div class="bg">
     <div class="row">
       <div class="col pt-5">
-        <h2 class="text-center mt-4">ABSENSI DINAS PENDIDIKAN<br><small class="text-muted">Pemkab. Pamekasan</small></h2>
+        <h2 class="text-center mt-4">ABSENSI DINAS PENDIDIKAN <sup class="badge badge-secondary px-1 py-1 text-muted">{{version}}</sup><br><small class="text-muted">Pemkab. Pamekasan</small></h2>
         <p class="text-center mt-3">
           <img src="/img/pemkab.jpg" alt="pemkab" class="img-logo mr-3">
           <img src="/img/kemendikbud.png" alt="disdik" class="img-logo">
@@ -73,13 +73,19 @@ export default class Front extends Vue {
 
   private checkSession() {
     if (Session.getToken()) {
+      this.$store.dispatch('showSpinner', 'MENGECEK AKUN');
       Session.getMe().then(data => {
+        this.$store.dispatch('hideSpinner');
         for (const key in data) {
           this.$store.commit({
             type: 'changeUser', field: key, value: data[key]
           });
         }
         this.$router.replace(data.sekolah ? '/home' : '/home2');
+      }).catch(err => {
+        console.log(err);
+        this.$store.dispatch('hideSpinner');
+        this.$toast.error('PENGECEKAN GAGAL');
       });
     }
   }
@@ -119,8 +125,20 @@ export default class Front extends Vue {
     })
   }
 
-  mounted() {
+  private version = '';
+  async mounted() {
     this.checkSession();
+    this.version = await ipcRenderer.invoke('get-version');
+
+    ipcRenderer.on('update_available', () => {
+      ipcRenderer.removeAllListeners('update_available');
+      console.log('Update available');
+    });
+
+    ipcRenderer.on('update_downloaded', () => {
+      ipcRenderer.removeAllListeners('update_downloaded');
+      console.log('Update downloaded');
+    });
   }
 }
 </script>
@@ -154,6 +172,9 @@ img.img-logo {
 h2 {
   line-height: 1.4rem;
   small.text-muted {
+    font-size: 1rem;
+  }
+  sup {
     font-size: 1rem;
   }
 }

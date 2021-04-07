@@ -7,7 +7,7 @@
         <form role="form">
           <div class="form-row">
             <div class="col">
-              <select name="district" id="district" class="custom-select" @change="loadSekolah()" v-model="pickedDistrict">
+              <select name="district" id="district" :disabled="isKorwil" class="custom-select" @change="loadSekolah()" v-model="pickedDistrict">
                 <option value="">-- pilih kecamatan --</option>
                 <option :value="k.id_kecamatan" :key="k.id_kecamatan" v-for="k in districtList">{{k.nama_kecamatan}}</option>
               </select>
@@ -246,10 +246,18 @@ export default class Home2 extends Vue {
   private pickedDistrict = '';
   private pickedInstitution = '';
 
+  get isKorwil() {
+    return this.$store.state.user.kecamatan != null;
+  }
+
   private districtList: any[] = [];
   loadDistrict() {
     this.apiService.getResource('/api/kecamatan').then(data => {
       this.districtList = data;
+      if (this.isKorwil) {
+        this.pickedDistrict = this.$store.state.user.kecamatan.id;
+        this.loadSekolah();
+      }
     }).catch(err => this.$toast.error(err));
   }
 

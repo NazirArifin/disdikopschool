@@ -1,9 +1,9 @@
 {
   "name": "opschool",
-  "version": "1.0.2",
+  "version": "1.0.0",
   "private": true,
   "author": {
-    "name": "stuckbrain",
+    "name": "disdikpmk",
     "email": "ceylon.rizan@gmail.com"
   },
   "scripts": {
@@ -21,6 +21,7 @@
     "axios": "^0.21.1",
     "core-js": "^3.6.5",
     "electron-dl": "^3.2.0",
+    "electron-updater": "^4.3.8",
     "jsstore": "^3.12.1",
     "moment": "^2.29.1",
     "mousetrap": "^1.6.5",
