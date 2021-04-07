@@ -121,7 +121,7 @@ export default class Front extends Vue {
       localStorage.clear();
       await ipcRenderer.invoke('get-app-path');
     }, function() {
-      // nothing
+      // nothing to worry
     })
   }
 
