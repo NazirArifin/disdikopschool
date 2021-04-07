@@ -110,21 +110,28 @@ if (isDevelopment) {
   }
 }
 
+// autoupdater
 autoUpdater.on('update-available', () => {
   if (win) {
     win.webContents.send('update_available');
   }
 });
-
 autoUpdater.on('update-downloaded', () => {
   if (win) {
     win.webContents.send('update_downloaded');
   }
 });
-
 autoUpdater.on('error', error => {
   if (win) {
     win.webContents.send('update_error', error);
+  }
+});
+autoUpdater.on('download-progress', progress => {
+  let message = "Download speed: " + progress.bytesPerSecond;
+  message = message + ' - Downloaded ' + progress.percent + '%';
+  message = message + ' (' + progress.transferred + "/" + progress.total + ')';
+  if (win) {
+    win.webContents.send('download_progress', message);
   }
 });
 
