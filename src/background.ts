@@ -117,11 +117,9 @@ autoUpdater.on('update-available', () => {
   }
 });
 autoUpdater.on('update-downloaded', () => {
-  app.relaunch();
-  app.exit();
-  // if (win) {
-  //   win.webContents.send('update_downloaded');
-  // }
+  if (win) {
+    win.webContents.send('update_downloaded');
+  }
 });
 autoUpdater.on('error', error => {
   if (win) {
