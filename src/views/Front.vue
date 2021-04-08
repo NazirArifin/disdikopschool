@@ -132,7 +132,13 @@ export default class Front extends Vue {
 
     ipcRenderer.on('update_available', () => {
       ipcRenderer.removeAllListeners('update_available');
-      console.log('Update available');
+      this.$store.dispatch('showSpinner', 'UPDATE TERSEDIA. AKAN MENDOWNLOAD');
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ipcRenderer.on('download-progress', (event: any, data: any) => {
+      console.log(event);
+      this.$store.dispatch('changeSpinnerMessage', data);
     });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -140,11 +146,6 @@ export default class Front extends Vue {
       ipcRenderer.removeAllListeners('update_error');
       console.log(event);
       console.log(data);
-    });
-
-    ipcRenderer.on('update_downloaded', () => {
-      ipcRenderer.removeAllListeners('update_downloaded');
-      console.log('Update downloaded');
     });
   }
 }
