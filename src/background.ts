@@ -128,7 +128,7 @@ autoUpdater.on('error', error => {
 });
 autoUpdater.on('download-progress', progress => {
   let message = "Download speed: " + progress.bytesPerSecond;
-  message = message + ' - Downloaded ' + progress.percent + '%';
+  message = message + ' - Downloaded ' + Math.round(progress.percent) + '%';
   message = message + ' (' + progress.transferred + "/" + progress.total + ')';
   if (win) {
     win.webContents.send('download_progress', message);

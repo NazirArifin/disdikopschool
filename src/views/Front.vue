@@ -125,28 +125,11 @@ export default class Front extends Vue {
     })
   }
 
-  private version = '';
+  get version() {
+    return this.$store.state.version; 
+  }
   async mounted() {
     this.checkSession();
-    this.version = await ipcRenderer.invoke('get-version');
-
-    ipcRenderer.on('update_available', () => {
-      ipcRenderer.removeAllListeners('update_available');
-      this.$store.dispatch('showSpinner', 'UPDATE TERSEDIA. AKAN MENDOWNLOAD');
-    });
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ipcRenderer.on('download-progress', (event: any, data: any) => {
-      console.log(event);
-      this.$store.dispatch('changeSpinnerMessage', data);
-    });
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ipcRenderer.on('update_error', (event: any, data: any) => {
-      ipcRenderer.removeAllListeners('update_error');
-      console.log(event);
-      console.log(data);
-    });
   }
 }
 </script>

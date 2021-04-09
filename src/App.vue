@@ -87,6 +87,29 @@ export default class App extends Vue {
     const version = await ipcRenderer.invoke('get-version');
     this.$store.dispatch('setVersion', version);
     this.checkOnline();
+
+    ipcRenderer.on('update_available', () => {
+      ipcRenderer.removeAllListeners('update_available');
+      this.$store.dispatch('showSpinner', 'UPDATE TERSEDIA. MENDOWNLOAD');
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ipcRenderer.on('download-progress', (event: any, data: any) => {
+      console.log(event);
+      console.log(data);
+      this.$store.dispatch('changeSpinnerMessage', data);
+    });
+
+    ipcRenderer.on('update-downloaded', () => {
+      this.$store.dispatch('hideSpinner');
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ipcRenderer.on('update_error', (event: any, data: any) => {
+      ipcRenderer.removeAllListeners('update_error');
+      console.log(event);
+      console.log(data);
+    });
   }
 }
 </script>
