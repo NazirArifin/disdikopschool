@@ -90,17 +90,17 @@ export default class App extends Vue {
 
     ipcRenderer.on('update_available', () => {
       ipcRenderer.removeAllListeners('update_available');
-      this.$store.dispatch('showSpinner', 'UPDATE TERSEDIA. MENDOWNLOAD');
+      this.$store.dispatch('showSpinner', 'UPDATE TERSEDIA. MENDOWNLOAD...');
     });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ipcRenderer.on('download-progress', (event: any, data: any) => {
+    ipcRenderer.on('download_progress', (event: any, data: any) => {
       console.log(event);
       console.log(data);
       this.$store.dispatch('changeSpinnerMessage', data);
     });
 
-    ipcRenderer.on('update-downloaded', () => {
+    ipcRenderer.on('update_downloaded', () => {
       this.$store.dispatch('hideSpinner');
     });
 
