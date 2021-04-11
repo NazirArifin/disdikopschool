@@ -90,7 +90,7 @@ export default class App extends Vue {
 
     ipcRenderer.on('update_available', () => {
       ipcRenderer.removeAllListeners('update_available');
-      this.$store.dispatch('showSpinner', 'UPDATE TERSEDIA. MENDOWNLOAD...');
+      this.$store.dispatch('showSpinner', 'UPDATE TERSEDIA. SEDANG MENDOWNLOAD...');
     });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

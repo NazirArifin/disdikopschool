@@ -39,7 +39,19 @@ export default class Api {
       axios.get(this.apiUrl + type, { params: params, paramsSerializer: function(params) {
         return $.param(params);
       } }).then(response => {
-        resolve(response.data);
+        if (response.headers['content-type'] != 'application/json') {
+          axios.get(this.apiUrl + type, { params: params, paramsSerializer: function(params) {
+            return $.param(params);
+          } }).then(response => {
+            if (response.headers['content-type'] != 'application/json') {
+              reject('Connection blocked');
+            } else {
+              resolve(response.data);
+            }
+          })
+        } else {
+          resolve(response.data);
+        }
       }).catch(error => {
         reject(error.response);
       });
