@@ -38,15 +38,33 @@
               <div class="card-body">
                 <div class="row">
                   <div class="col-8 offset-2">
-                    <p class="last-sync-info mb-2 mt-4">Terakhir Sinkron: {{lastSync}}</p>
+                    <div class="row mb-2">
+                      <div class="col">
+                        <p class="last-sync-info mb-0 mt-2">Terakhir Sinkron: {{lastSync}}</p>
+                      </div>
+                      <div class="col text-right">
+                        <button class="btn btn-sm btn-dark view-sync-history" data-toggle="modal" data-target="#sync-modal" :disabled="syncList.length == 0" type="button">
+                          <i class="icon-folder-alt"></i> Lihat Histori Sinkronisasi
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <!-- <p class="last-sync-info mb-2 mt-4">Terakhir Sinkron: {{lastSync}}</p> -->
+                    <div class="text-center mb-3">
+                      <p class="alert alert-success mb-3 p-1">
+                        <small>Dalam beberapa hari kedepan, Anda dapat melakukan sinkron untuk tanggal-tanggal selain hari ini. Pastikan Anda melakukan sinkron pada tanggal-tanggal tersebut terutama tanggal yang belum pernah disinkron sebelumnya.</small> 
+                      </p>
+                      <date-picker :format="'DD/MM/YYYY'" v-model="sinkronDate" :value-type="'DD/MM/YYYY'" :disabled-date="disabledBefore1March"></date-picker>
+                    </div>
                     <p class="mb-3">
                       <button type="button" class="btn btn-lg btn-block btn-primary py-3 shadow" :disabled="inIdling" v-on:click="syncronize()">Sinkron Absensi Sekarang</button>
                     </p>
-                    <p class="mb-4">
+
+                    <!-- <p class="mb-4">
                       <button class="btn btn-sm btn-dark view-sync-history" data-toggle="modal" data-target="#sync-modal" :disabled="syncList.length == 0" type="button">
                         <i class="icon-folder-alt"></i> Lihat Histori Sinkronisasi
                       </button>
-                    </p>
+                    </p> -->
                   </div>
                 </div>
               </div>
@@ -218,6 +236,7 @@
 </template>
 
 <script lang="ts">
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Component, Vue } from 'vue-property-decorator'
 import Header from '@/components/Header.vue'
 const DatePicker = require('vue2-datepicker').default
@@ -245,6 +264,7 @@ extend('max', max);
 export default class Home extends Vue {
   private activeMenu = 'sinkron';
   private reportDate = '';
+  private sinkronDate = '';
   private empDb: MyDb;
   private syncDb: MyDb;
   private apiService: Api = new Api();
@@ -257,6 +277,11 @@ export default class Home extends Vue {
       return '-';
     }
     return moment(this.syncList[0].date).format('dddd, DD MMMM YYYY HH.mm');
+  }
+  disabledBefore1March(date: Date) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return date > today || date < new Date(2021, 1, 28, 0, 0, 1);
   }
 
   private dbConfig: ConfigType;
@@ -281,10 +306,8 @@ export default class Home extends Vue {
       const v = await Database.query(`SHOW VARIABLES LIKE "version"`);
       const version = v[0].Value;
       const t = await Database.query(`SHOW TABLES`);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const tables = t.map((row: any) => {
         return row.Tables_in_fpdb;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }).filter((row: any) => row == 'att_log' || row == 'pegawai');
 
       alertify.alert('KONEKSI SUKSES', `<strong class="text-success">Versi MySQL: ${version}</strong><br>&bull; Tabel absensi <i class="icon-${tables.indexOf('att_log') != -1 ? 'check' : 'close'}"></i><br>&bull; Tabel pegawai <i class="icon-${tables.indexOf('pegawai') != -1 ? 'check' : 'close'}"></i>`, function() {
@@ -343,19 +366,19 @@ export default class Home extends Vue {
   private userList: readonly { pin: string; name: string }[] = [];
   private logList: readonly { pin: string; dateTime: string }[] = [];
   async syncronize() {
-    // this.$store.dispatch('changeSpinnerMessage', 'MENGAMBIL ABSENSI');
     this.$store.dispatch('showSpinner', 'MENGAMBIL ABSENSI');
     
-    // kita cari log hari ini
+    // kita cari log di sinkronDate
     const todayTime = moment().format('YYYY-MM-DD HH:mm:ss'); 
-    const today = todayTime.split(' ')[0];
+    // const today = todayTime.split(' ')[0];
+    const today = this.sinkronDate.split('/').reverse().join('-');
+    
     const pins: string[] = [];
     const names: string[] = [];
     const aliases: string[] = [];
     const dateTimes: string[] = [];
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const logs: any[] = await Database.query(`SELECT scan_date, pin FROM att_log WHERE DATE(scan_date) = ? ORDER BY scan_date`, [today]);
       if (logs.length == 0) {
         alertify.alert('ERROR', '<strong class="text-danger">TIDAK ADA DATA ABSENSI HARI INI</strong>', function() {
@@ -364,11 +387,9 @@ export default class Home extends Vue {
         this.$store.dispatch('hideSpinner'); return;
       }
       
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       logs.filter((v: any) => {
         const p = this.pegawaiList.find((k: PegawaiType) => k.pin == v.pin);
-        return p?.active
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return p?.active;
       }).forEach((v: any) => {
         const p = this.pegawaiList.find((k: PegawaiType) => k.pin == v.pin);
         pins.push(p?.nip || '');
@@ -380,7 +401,8 @@ export default class Home extends Vue {
       this.$store.dispatch('changeSpinnerMessage', 'MENGIRIM DATA KE SERVER');
       // kirimkan ke server
       this.apiService.postResource('/sinkron', {
-        pin: pins, name: names, alias: aliases, dateTime: dateTimes
+        // pin: pins, name: names, alias: aliases, dateTime: dateTimes
+        pin: JSON.stringify(pins), name: JSON.stringify(names), alias: JSON.stringify(aliases), dateTime: JSON.stringify(dateTimes)
       }, true).then(async data => {
         this.$store.dispatch('hideSpinner')
         // tambahkan di database
@@ -394,7 +416,7 @@ export default class Home extends Vue {
         }
       }).catch(err => {
         this.$store.dispatch('hideSpinner');
-        this.$toast.error('ERROR: ' + err.toString());
+        this.$toast.error('ERROR: ' + err.data.message);
         this.activateIdling();
       });
     } catch(err) {
@@ -464,7 +486,6 @@ export default class Home extends Vue {
       this.$toast.error(err.toString());
     }
   }
-  /* eslint-enable @typescript-eslint/no-explicit-any */
 
   updateStatusActive(i: number) {
     const p = this.pegawaiList[i];
@@ -491,6 +512,7 @@ export default class Home extends Vue {
   mounted() {
     this.loadPegawai();
     this.loadSyncData();
+    this.sinkronDate = moment().format('DD/MM/YYYY');
   }
 }
 </script>

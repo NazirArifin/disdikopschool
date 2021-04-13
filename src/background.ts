@@ -110,6 +110,10 @@ if (isDevelopment) {
   }
 }
 
+const formatBytes = (a: number, b = 2) => {
+  if(0===a)return"0 Bytes";const c=0>b?0:b,d=Math.floor(Math.log(a)/Math.log(1024));return parseFloat((a/Math.pow(1024,d)).toFixed(c))+" "+["Bytes","KB","MB","GB","TB","PB","EB","ZB","YB"][d]
+}
+
 // autoupdater
 autoUpdater.on('update-available', () => {
   if (win) {
@@ -127,9 +131,8 @@ autoUpdater.on('error', error => {
   }
 });
 autoUpdater.on('download-progress', progress => {
-  let message = "Download speed: " + progress.bytesPerSecond;
-  message = message + ' - Downloaded ' + Math.round(progress.percent) + '%';
-  message = message + ' (' + progress.transferred + "/" + progress.total + ')';
+  let message = "DOWNLOAD SPEED: " + formatBytes(progress.bytesPerSecond);
+  message = message + ' - TERDOWNLOAD: ' + Math.round(progress.percent) + '%';
   if (win) {
     win.webContents.send('download_progress', message);
   }
