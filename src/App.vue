@@ -29,10 +29,10 @@
 
 <script lang="ts">
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-var-requires */
 import { remote } from 'electron';
 import { Component, Vue } from 'vue-property-decorator'
 import { ipcRenderer } from 'electron'
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const Mousetrap = require('mousetrap')
 const alertify = require('alertifyjs')
 
