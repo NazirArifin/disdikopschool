@@ -34,6 +34,7 @@ import { Component, Vue } from 'vue-property-decorator'
 import { ipcRenderer } from 'electron'
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const Mousetrap = require('mousetrap')
+const alertify = require('alertifyjs')
 
 @Component({
   directives: {
@@ -90,7 +91,7 @@ export default class App extends Vue {
 
     ipcRenderer.on('update_available', () => {
       ipcRenderer.removeAllListeners('update_available');
-      this.$store.dispatch('showSpinner', 'UPDATE TERSEDIA. SEDANG MENDOWNLOAD...');
+      this.$store.dispatch('showSpinner', 'UPDATE TERSEDIA. PERSIAPAN MENDOWNLOAD...');
     });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -107,6 +108,10 @@ export default class App extends Vue {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ipcRenderer.on('update_error', (event: any, data: any) => {
       ipcRenderer.removeAllListeners('update_error');
+      this.$store.dispatch('hideSpinner');
+      alertify.alert('ERROR', '<strong class="text-danger">GAGAL MENDOWNLOAD</strong>', function() {
+        // do nothing
+      });
       console.log(event);
       console.log(data);
     });
