@@ -1,0 +1,377 @@
+<div class="pt-3">
+  <Header :sekolah="sekolah"></Header>
+
+  <div class="row mt-4">
+    <div class="col-10 offset-1">
+      <div class="row">
+        <div class="col d-flex justify-content-start">
+          <div class="d-flex flex-column align-items-center main-icon-menu" v-on:click="changeMenu('sinkron')" :class="{ 'inactive': activeMenu != 'sinkron' }">
+            <div class="icon-container">
+              <img src="/img/001-syncronization.png" class="" alt="absensi">
+            </div>
+            <p class="mt-1 font-weight-bold icon-label">SINKRON ABSENSI</p>
+          </div>
+        </div>
+        <div class="col d-flex justify-content-center">
+          <div class="d-flex flex-column align-items-center main-icon-menu" v-on:click="changeMenu('employee')" :class="{ 'inactive': activeMenu != 'employee' }">
+            <div class="icon-container">
+              <img src="/img/001-business.png" alt="pegawai">
+            </div>
+            <p class="mt-1 font-weight-bold icon-label">DATA PEGAWAI</p>
+          </div>
+        </div>
+        <div class="col d-flex justify-content-end">
+          <div class="d-flex flex-column align-items-center main-icon-menu" v-on:click="changeMenu('permit')" :class="{ 'inactive': activeMenu != 'permit' }">
+            <div class="icon-container">
+              <img src="/img/001-permission.png" alt="laporan">
+            </div>
+            <p class="mt-1 font-weight-bold icon-label">PENGAJUAN IJIN</p>
+          </div>
+        </div>
+        <div class="col d-flex justify-content-end">
+          <div class="d-flex flex-column align-items-center main-icon-menu" v-on:click="changeMenu('report')" :class="{ 'inactive': activeMenu != 'report' }">
+            <div class="icon-container">
+              <img src="/img/002-seo-report.png" alt="laporan">
+            </div>
+            <p class="mt-1 font-weight-bold icon-label">LIHAT LAPORAN</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- MENU SINKRON -->
+      <div class="row mt-3" v-if="activeMenu == 'sinkron'">
+        <div class="col card-container">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <div class="row">
+                <div class="col-8 offset-2">
+                  <div class="row mb-2">
+                    <div class="col">
+                      <p class="last-sync-info mb-0 mt-2">Terakhir Sinkron: {{lastSync}}</p>
+                    </div>
+                    <div class="col text-right">
+                      <button class="btn btn-sm btn-dark view-sync-history" data-toggle="modal" data-target="#sync-modal" :disabled="syncList.length == 0" type="button">
+                        <i class="icon-folder-alt"></i> Lihat Histori Sinkronisasi
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <!-- <p class="last-sync-info mb-2 mt-4">Terakhir Sinkron: {{lastSync}}</p> -->
+                  <div class="text-center mb-3">
+                    <p class="alert alert-success mb-3 p-1">
+                      <small>Dalam beberapa hari kedepan, Anda dapat melakukan sinkron untuk tanggal-tanggal selain hari ini. Pastikan Anda melakukan sinkron pada tanggal-tanggal tersebut terutama tanggal yang belum pernah disinkron sebelumnya.</small> 
+                    </p>
+                    <date-picker :format="'DD/MM/YYYY'" v-model="sinkronDate" :value-type="'DD/MM/YYYY'" :disabled-date="disabledBefore1March"></date-picker>
+                  </div>
+                  <p class="mb-3">
+                    <button type="button" class="btn btn-lg btn-block btn-primary py-3 shadow" :disabled="inIdling" v-on:click="syncronize()">Sinkron Absensi Sekarang</button>
+                  </p>
+
+                  <!-- <p class="mb-4">
+                    <button class="btn btn-sm btn-dark view-sync-history" data-toggle="modal" data-target="#sync-modal" :disabled="syncList.length == 0" type="button">
+                      <i class="icon-folder-alt"></i> Lihat Histori Sinkronisasi
+                    </button>
+                  </p> -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MENU DATA PEGAWAI -->
+      <div class="row mt-3" v-if="activeMenu == 'employee'">
+        <div class="col card-container">
+          <div class="card shadow-sm">
+            <div class="card-body p-0" style="overflow-x:hidden; overflow-y:auto">
+              <div class="row">
+                <div class="col">
+                  <table class="table mb-0">
+                    <thead class="thead-dark">
+                      <tr>
+                        <th title="pegawai ikut disinkronkan"><i class="icon-list"></i></th>
+                        <th>NIP</th>
+                        <th>NAMA</th>
+                        <th>ALIAS</th>
+                      </tr>
+                    </thead>
+                    <tbody v-if="pegawaiList.length == 0">
+                      <tr>
+                        <td colspan="4">
+                          <h5 class="text-center">TIDAK ADA DATA</h5>
+                        </td>
+                      </tr>
+                    </tbody>
+                    <tbody v-else>
+                      <tr v-for="(pegawai, i) in pegawaiList" :key="pegawai.id">
+                        <td>
+                          <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" v-model="pegawai.active" @change="updateStatusActive(i)" :id="`check-${pegawai.id}`">
+                            <label class="custom-control-label" :for="`check-${pegawai.id}`"></label>
+                          </div>
+                        </td>
+                        <td>{{pegawai.nip}}</td>
+                        <td>{{pegawai.nama}}</td>
+                        <td>{{pegawai.namaSingkat}}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MENU PENGAJUAN IJIN -->
+      <div class="row mt-3" v-if="activeMenu == 'permit'">
+        <div class="col card-container">
+          <div class="row mb-2 no-gutters">
+            <div class="col text-right">
+              <button type="button" shadow-sm class="btn btn-primary" data-toggle="modal" data-target="#ijin-modal"><i class="icon-plus mr-1"></i> TAMBAH AJUAN</button>
+            </div>
+          </div>
+          <div class="card shadow-sm">
+            <div class="card-body p-0" style="overflow-x:hidden; overflow-y:auto">
+              <div class="row">
+                <div class="col">
+                  <table class="table table-sm mb-0">
+                    <thead class="thead-dark">
+                      <tr>
+                        <th rowspan="2" class="align-top">NIP / NAMA</th>
+                        <th rowspan="2" class="align-top">JENIS IJIN</th>
+                        <th colspan="2" class="text-center">TANGGAL</th>
+                        <th rowspan="2" class="align-top">STATUS</th>
+                        <th rowspan="2"></th>
+                      </tr>
+                      <tr>
+                        <th>MULAI</th>
+                        <th>SELESAI</th>
+                      </tr>
+                    </thead>
+                    <tbody v-if="ajuanList.length == 0">
+                      <tr>
+                        <td colspan="8">
+                          <h5 class="text-center">TIDAK ADA DATA</h5>
+                        </td>
+                      </tr>
+                    </tbody>
+                    <tbody v-else>
+                      <tr v-for="(v, i) in ajuanList" :key="v.id">
+                        <td><span class="text-muted">{{v.nip}}</span><br>{{v.nama}}</td>
+                        <td>{{jenisIjinList.find(k => k.id == v.jenis).val}}<br><span class="text-muted">{{v.alasan}}</span></td>
+                        <td class="align-middle">{{v.mulai.split('-').reverse().join('/')}}</td>
+                        <td class="align-middle">{{v.akhir.split('-').reverse().join('/')}}</td>
+                        <td class="align-middle">
+                          <span class="text-muted font-weight-bold" v-if="v.status == 1"><i class="icon-clock"></i> DIAJUKAN</span>
+                          <span class="text-success font-weight-bold" v-if="v.status == 2"><i class="icon-check"></i> DISETUJUI</span>
+                          <span class="text-danger font-weight-bold" v-if="v.status == 3"><i class="icon-close"></i> DITOLAK</span>
+                        </td>
+                        <td class="align-middle">
+                          <button type="button" @click="editAjuan(i)" data-toggle="modal" data-target="#ijin-modal" v-if="v.status == 1" class="btn btn-sm btn-info"><i class="icon-pencil"></i></button>
+                          <button type="button" @click="deleteAjuan(i)" v-if="v.status != 2" class="btn btn-sm btn-danger"><i class="icon-trash"></i></button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MENU LAPORAN -->
+      <div class="row mt-3" v-if="activeMenu == 'report'">
+        <div class="col card-container">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <form role="form">
+                <div class="row mt-4 form-group">
+                  <label for="date-start" class="col-3 offset-1 col-form-label">Tanggal Absensi</label>
+                  <div class="col-7">
+                    <date-picker :format="'DD/MM/YYYY'" v-model="reportDate" :value-type="'DD/MM/YYYY'" range></date-picker>
+                  </div>
+                </div>
+                <div class="row mt-2 mb-4 form-group">
+                  <div class="col-6 offset-3">
+                    <button type="button" class="btn btn-primary btn-lg btn-block shadow-sm py-2" :disabled="reportDate.length == 0" v-on:click="downloadReport()">Buat Laporan &amp; Unduh</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL MENAMPILKAN HISTORI SINKRON -->
+  <div class="modal fade" id="sync-modal" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Histori Sinkronisasi</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body" style="overflow: auto">
+          <table class="table">
+            <thead class="thead-dark">
+              <tr>
+                <th>Waktu Sinkron</th>
+                <th>Data Terproses</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr :key="i" v-for="(d, i) in syncList">
+                <td>{{d.date.split(' ')[0].split('-').reverse().join('-')}} {{d.date.split(' ')[1]}}</td>
+                <td>{{d.count}}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL EDIT / TAMBAH PERANGKAT -->
+  <div class="modal fade" id="fp-modal" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+    <validation-observer ref="formFP" slim v-slot="{ invalid }">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Pengaturan Database</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form role="form" name="formFP">
+              <p class="alert alert-warning shadow-sm"><small>Pastikan database yang dimasukkan adalah yang digunakan oleh aplikasi Fingerspot Personel</small></p>
+              <validation-provider slim name="host" rules="required|min:4|max:40">
+                <div class="form-group">
+                  <label for="ip">HOST</label>
+                  <input type="text" name="host" id="host" class="form-control" minlength="4" maxlength="40" required v-model="dbConfig.host" placeholder="Nama Host" :disabled="checkingConn">
+                </div>
+              </validation-provider>
+              <validation-provider slim name="port" rules="required|min:2|max:5">
+                <div class="form-group">
+                  <label for="port">PORT</label>
+                  <input type="text" name="port" id="port" class="form-control" minlength="2" maxlength="5" required v-model="dbConfig.port" placeholder="Port Database" :disabled="checkingConn">
+                </div>
+              </validation-provider>
+              <validation-provider slim name="database" rules="required|min:2|max:40">
+                <div class="form-group">
+                  <label for="database">Nama Database</label>
+                  <input type="text" name="database" id="database" class="form-control" minlength="2" maxlength="40" required v-model="dbConfig.database" placeholder="Nama Database" :disabled="checkingConn">
+                </div>
+              </validation-provider>
+              <validation-provider slim name="user" rules="required|min:2|max:40">
+                <div class="form-group">
+                  <label for="user">User Database</label>
+                  <input type="text" name="user" id="user" class="form-control" minlength="2" maxlength="40" required v-model="dbConfig.user" placeholder="User Database" :disabled="checkingConn">
+                </div>
+              </validation-provider>
+              <validation-provider slim name="password" rules="min:2|max:40">
+                <div class="form-group">
+                  <label for="password">Password Database</label>
+                  <input type="text" name="password" id="password" class="form-control" minlength="2" maxlength="40" v-model="dbConfig.password" placeholder="Password Database" :disabled="checkingConn">
+                </div>
+              </validation-provider>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal" :disabled="checkingConn">Batal / Tutup</button>
+            <button type="button" class="btn btn-warning" v-on:click="checkDbConn()" :disabled="checkingConn">
+              <span v-if="checkingConn"><i class="icon-clock"></i> </span> Tes Koneksi
+            </button>
+            <button type="button" data-dismiss="modal" class="btn btn-primary shadow-sm" v-on:click="saveSetting()" :disabled="invalid || checkingConn">Simpan Pengaturan</button>
+          </div>
+        </div>
+      </div>
+    </validation-observer>
+  </div>
+
+  <!-- MODAL EDIT / TAMBAH PENGAJUAN IJIN -->
+  <div class="modal fade" id="ijin-modal" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+    <validation-observer ref="formIjin" slim v-slot="{ invalid }">
+      <div class="modal-dialog">
+        <div class="modal-content" style="max-height: 490px;overflow-x: auto;">
+          <div class="modal-header">
+            <h5 class="modal-title">Pengajuan Ijin</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form role="form" name="formIjin">
+              <div class="form-group">
+                <label for="ijinPegawai">Pilih Pegawai</label>
+                <validation-provider slim name="ijinPegawai" rules="required">
+                  <select name="ijinPegawai" id="ijinPegawai" v-model="ajuan.pegawai" class="form-control">
+                    <option value="">-- pilih pegawai --</option>
+                    <option :value="v.nip" :key="v.pin" v-for="v in pegawaiList.filter(v => v.active)">{{v.nama}}</option>
+                  </select>
+                </validation-provider>
+              </div>
+              <div class="form-group">
+                <label for="ijinJenis">Jenis Ijin</label>
+                <validation-provider slim name="ijinJenis" rules="required">
+                  <select name="ijinJenis" required id="ijinJenis" v-model="ajuan.jenis" class="form-control">
+                    <option value="">-- jenis ijin --</option>
+                    <option :value="v.id" :key="v.id" v-for="v in jenisIjinList">{{v.val}}</option>
+                  </select>
+                </validation-provider>
+              </div>
+              <div class="form-group" v-if="ajuan.id == 0">
+                <label for="ijinAlasan">Alasan</label>
+                <validation-provider slim name="ijinAlasan" rules="required">
+                  <select name="ijinAlasan" required id="ijinAlasan" v-model="ajuan.alasan" class="form-control">
+                    <option value="">-- alasan ijin --</option>
+                    <option value="1">Keperluan Pribadi</option>
+                    <option value="2">Keperluan Kantor</option>
+                    <option value="3">Sakit</option>
+                    <option value="4">Cuti Normatif</option>
+                    <option value="5">Lainnya</option>
+                  </select>
+                </validation-provider>
+              </div>
+              <div class="form-group" v-if="ajuan.alasan == 5 || ajuan.id > 0">
+                <label for="ijinKeterangan">Detail Alasan</label>
+                <validation-provider slim name="ijinKeterangan" rules="min:3|max:80">
+                  <input type="text" name="ijinKeterangan" minlength="3" maxlength="80" v-model="ajuan.keterangan" id="ijinKeterangan" class="form-control">
+                </validation-provider>
+              </div>
+              <div class="form-group">
+                <label for="ijinTanggal">Tanggal</label>
+                <validation-provider slim name="ijinTanggal" rules="required">
+                  <date-picker :format="'DD/MM/YYYY'" style="display: block !important; width: 100%;" v-model="ajuan.tanggal" :value-type="'DD/MM/YYYY'" range></date-picker>
+                </validation-provider>
+                <small id="tanggalHelpBlock" class="form-text text-muted">
+                  Untuk memilih tanggal tunggal, lakukan double click pada tanggal tersebut
+                </small>
+              </div>
+              <div class="form-group">
+                <label for="ijinDokumen" class="text-muted">Dokumen Pendukung (opsional)</label>
+                <div class="custom-file">
+                  <input type="file" class="custom-file-input" accept=".docx,.pdf,.jpg,.jpeg,.png" id="ijinDokumen" v-pickFile>
+                  <label class="custom-file-label" for="ijinDokumen">{{fileLabel}}</label>
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal" v-on:click="resetAjuan()">Batal / Tutup</button>
+            <button type="button" data-dismiss="modal" class="btn btn-primary shadow-sm" v-on:click="saveIjin()" :disabled="invalid">Simpan Pengajuan</button>
+          </div>
+        </div>
+      </div>
+    </validation-observer>
+  </div>
+</div>

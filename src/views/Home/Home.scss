@@ -1,0 +1,44 @@
+.main-icon-menu {
+  &.inactive {
+    .icon-container {
+      border: 2px solid rgba($color: #000000, $alpha: .1);
+      cursor: pointer;
+    }
+    img {
+      filter: grayscale(100%);
+      &:hover {
+        filter: grayscale(0%);
+      }
+    }
+  }
+  .icon-container {
+    width: 60px;
+    height: 60px;
+    border: 2px solid rgba($color: #000000, $alpha: 0.6);
+    border-radius: 50%;
+    padding: 10px;
+    img {
+      width: 100%;
+      transition: .5s;
+    }
+  }
+}
+.icon-label {
+  font-size: .8rem;
+}
+
+p.last-sync-info, button.view-sync-history {
+  font-size: 11px;
+}
+
+.btn-lg.btn-block {
+  font-size: 1rem;
+  text-transform: uppercase;
+}
+
+.card-container {
+  overflow-y: auto;
+  max-height: 330px;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
