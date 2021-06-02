@@ -2,20 +2,24 @@
 
 <script lang="ts">
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-var-requires */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Component, Vue } from 'vue-property-decorator'
 import Header from '@/components/Header.vue'
 const DatePicker = require('vue2-datepicker').default
 import 'vue2-datepicker/locale/id'
 import { SyncType, MyDb, PegawaiType } from '@/services/mydb'
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const alertify = require('alertifyjs');
 import { ValidationProvider, ValidationObserver, extend } from 'vee-validate'
 import { required, min, max } from 'vee-validate/dist/rules'
 import { initJsStore, conn } from '@/services/idb'
 import moment from 'moment'
 import Api from '@/helpers/api'
-import { ConfigType, Database } from '@/helpers/db'
+import { ConfigType, FbDb } from '@/services/fpdb'
+import { Sdk, SdkConfigType } from '@/services/sdk'
+import { ipcRenderer } from 'electron'
 declare const $: any;
+import schedule from 'node-schedule'
 
 extend('required', required);
 extend('min', min);
@@ -30,7 +34,6 @@ extend('max', max);
     pickFile: {
       inserted: (el: HTMLElement, binding: any, vnode: any) => {
         const $el = $(el);
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         $el.on('change', (e: Event) => {
           const count = $el[0].files.length;
           if (count === 0) return;
@@ -51,9 +54,24 @@ export default class Home extends Vue {
   private empDb: MyDb;
   private syncDb: MyDb;
   private apiService: Api = new Api();
+  private dbActive = false;
+  private sdkActive = false;
 
+  // get anyDbSdkActive() {
+  //   // return this.dbActive || this.sdkActive;
+  //   if (this.sdkActive) {
+  //     return true;
+  //   }
+  //   if (this.dbActive) {
+  //     return true;
+  //   }
+  //   return false;
+  // }
   get sekolah() {
     return this.$store.state.user.sekolah.nama;
+  }
+  get idSekolah() {
+    return this.$store.state.user.sekolah.id;
   }
   get lastSync() {
     if (this.syncList.length == 0) {
@@ -75,68 +93,90 @@ export default class Home extends Vue {
     return date > today || date < new Date(2021, 1, 28, 0, 0, 1);
   }
 
-  private dbConfig: ConfigType;
-  async saveSetting() {
-    localStorage.removeItem('dbSetting');
-    localStorage.setItem('dbSetting', JSON.stringify(this.dbConfig));
-    
-    await this.empDb.clear();
-    Database.close();
-    Database.init(this.dbConfig);
-    
-    this.loadPegawai();
-  }
-
-  private checkingConn = false;
-  async checkDbConn() {
-    this.checkingConn = true;
-    try {
-      Database.close();
-      Database.init(this.dbConfig);
-
-      const v = await Database.query(`SHOW VARIABLES LIKE "version"`);
-      const version = v[0].Value;
-      const t = await Database.query(`SHOW TABLES`);
-      const tables = t.map((row: any) => {
-        return row.Tables_in_fpdb;
-      }).filter((row: any) => row == 'att_log' || row == 'pegawai');
-
-      alertify.alert('KONEKSI SUKSES', `<strong class="text-success">Versi MySQL: ${version}</strong><br>&bull; Tabel absensi <i class="icon-${tables.indexOf('att_log') != -1 ? 'check' : 'close'}"></i><br>&bull; Tabel pegawai <i class="icon-${tables.indexOf('pegawai') != -1 ? 'check' : 'close'}"></i>`, function() {
-        // do nothing
-      });
-      this.checkingConn = false;
-    } catch(err) {
-      this.checkingConn = false;
-      alertify.alert('ERROR', '<strong class="text-danger">KONEKSI GAGAL</strong>', function() {
-        // do nothing
-      });
-    }
-  }
-
   changeMenu(menu: string) {
     this.activeMenu = menu;
   }
 
+  private activeSetting = 'sdk';
+  setActiveSetting(type: string) {
+    if (type != this.activeSetting) {
+      this.activeSetting = type;
+    }
+  }
+
+  /* BAGIAN DATABASE CONNECTION */
+  private dbConfig: ConfigType = {
+    host: 'localhost', port: '3306', user: 'root', 
+    password: '', database: '', multipleStatements: true,
+    connectionLimit: 3000
+  }
+  private fbDb: FbDb;
+  async saveSetting() {
+    await this.empDb.clear();
+    if (this.activeSetting == 'db') {
+      this.fbDb.changeSetting(this.dbConfig);
+    } else {
+      try {
+        await this.sdk.changeSetting(this.sdkConfig);
+      } catch(err) {
+        this.$toast.error(err.toString());
+      }
+    }
+    this.syncronPegawai();
+  }
+  private checkingConn = false;
+  async checkDbConn() {
+    this.checkingConn = true;
+    if (this.activeSetting == 'db') {
+      this.fbDb.checkConnection(this.dbConfig).then(data => {
+        alertify.alert('KONEKSI SUKSES', `<strong class="text-success">Versi MySQL: ${data.version}</strong><br>&bull; Tabel absensi <i class="icon-${data.tabelAbsensi != -1 ? 'check' : 'close'}"></i><br>&bull; Tabel pegawai <i class="icon-${data.tabelPegawai != -1 ? 'check' : 'close'}"></i>`, function() {
+          // do nothing
+        });
+        this.checkingConn = false;
+      }).catch(err => {
+        this.checkingConn = false;
+        alertify.alert('ERROR', '<strong class="text-danger">KONEKSI GAGAL</strong>', function() {
+          // do nothing
+        });
+      });
+    } else {
+      this.sdk.quickCheckConnection().then(data => {
+        alertify.alert('KONEKSI SUKSES', `<strong class="text-success">Jam Mesin: ${data.DEVINFO.Jam}</strong><br>&bull; Jumlah User: ${data.DEVINFO.User}<br>&bull; Jumlah Absensi: ${data.DEVINFO['All Presensi']}`, function() {
+          // do nothing
+        });
+        this.checkingConn = false;
+      }).catch(err => {
+        this.checkingConn = false;
+        alertify.alert('ERROR', '<strong class="text-danger">KONEKSI GAGAL</strong>', function() {
+          // do nothing
+        });
+      });  
+    }
+  }
+
+  /* BAGIAN SDK SETTING */
+  private sdkConfig: SdkConfigType = {
+    instpath: '', ipmac: '', portmac: '5005', snmac: '', 
+    passwordmac: '0', numbermac: '1', activationmac: '',
+    iphost: '', porthost: ''
+  }
+  private sdk: Sdk;
   constructor() {
     super();
     this.empDb = new MyDb(initJsStore, conn, 'Pegawai');
     this.syncDb = new MyDb(initJsStore, conn, 'Sinkron');
+    // initialize db conn and set config to storage
+    this.fbDb = FbDb.getInstance();
     const dbSetting = localStorage.getItem('dbSetting');
     if (dbSetting) {
       this.dbConfig = JSON.parse(dbSetting);
-    } else {
-      this.dbConfig = {
-        host: 'localhost',
-        port: '3306',
-        user: 'root',
-        password: '',
-        database: '',
-        multipleStatements: true,
-        connectionLimit: 3000
-      }
-      localStorage.setItem('dbSetting', JSON.stringify(this.dbConfig));
     }
-    Database.init(this.dbConfig);
+    // initialize sdk
+    this.sdk = Sdk.getInstance();
+    const sdkSetting = localStorage.getItem('sdkSetting');
+    if (sdkSetting) {
+      this.sdkConfig = JSON.parse(sdkSetting); 
+    }
   }
 
   // BAGIAN SYNCRON
@@ -160,24 +200,22 @@ export default class Home extends Vue {
     this.$store.dispatch('showSpinner', 'MENGAMBIL ABSENSI');
     
     // kita cari log di sinkronDate
-    const todayTime = moment().format('YYYY-MM-DD HH:mm:ss'); 
+    const todayTime = moment().local().format('YYYY-MM-DD HH:mm:ss');
     // const today = todayTime.split(' ')[0];
     const today = this.sinkronDate.split('/').reverse().join('-');
-    
     const pins: string[] = [];
     const names: string[] = [];
     const aliases: string[] = [];
     const dateTimes: string[] = [];
 
     try {
-      const logs: any[] = await Database.query(`SELECT scan_date, pin FROM att_log WHERE DATE(scan_date) = ? ORDER BY scan_date`, [today]);
-      if (logs.length == 0) {
-        alertify.alert('ERROR', '<strong class="text-danger">TIDAK ADA DATA ABSENSI HARI INI</strong>', function() {
-          // do nothing
-        });
-        this.$store.dispatch('hideSpinner'); return;
+      let logs: any = [];
+      if (this.sdkActive && this.isAsyncActive) {
+        logs = await this.sdk.getScanLog(today);
+      } else {
+        logs = await this.fbDb.getScanLog(today);
       }
-      
+
       logs.filter((v: any) => {
         const p = this.pegawaiList.find((k: PegawaiType) => k.pin == v.pin);
         return p?.active;
@@ -218,20 +256,25 @@ export default class Home extends Vue {
 
   // BAGIAN DATA PEGAWAI
   // ----------------------------------------------------------------------------------
-  /* eslint-disable @typescript-eslint/no-explicit-any */
   private pegawaiList: PegawaiType[] = [];
-  async loadPegawai() {
+  async syncronPegawai() {
     this.pegawaiList = [];
     try {
-      const rows = await Database.query(`SELECT pegawai_pin, pegawai_nip, pegawai_nama, pegawai_alias FROM pegawai`);
-      if (rows.length == 0) {
-        this.$toast.error('Data pegawai kosong, pastikan sudah di unduh dari mesin fingerprint!');
-        return;
+      // ambil data dari database atau dari sdk, diutamakan yang sdk
+      let empDb: any[] = [];
+      if (this.sdkActive && this.isAsyncActive) {
+        const rows = await this.sdk.getPegawai();
+        empDb = rows.Data.map((v: any) => {
+          return {
+            pin: v.PIN, nip: v.PIN, nama: v.Name, alias: v.Name
+          };
+        });
+      } else {
+        const rows = await this.fbDb.getPegawai();
+        empDb = rows.map((v: any) => {
+          return { pin: v.pegawai_pin, nip: v.pegawai_nip || v.pegawai_pin, nama: v.pegawai_nama, alias: v.pegawai_alias };
+        });
       }
-      
-      const empDb: any[] = rows.map((v: any) => {
-        return { pin: v.pegawai_pin, nip: v.pegawai_nip || v.pegawai_pin, nama: v.pegawai_nama, alias: v.pegawai_alias };
-      });
 
       let empIdb: PegawaiType[] = await this.empDb.getAll();
       let change = false;
@@ -278,6 +321,10 @@ export default class Home extends Vue {
     }
   }
 
+  async loadPegawai() {
+    this.pegawaiList = await this.empDb.getAll();
+  }
+
   updateStatusActive(i: number) {
     const p = this.pegawaiList[i];
     this.empDb.update({ active: p.active }, { id: p.id });
@@ -306,7 +353,7 @@ export default class Home extends Vue {
   ];
   private ajuanList: any[] = [];
   loadAjuan() {
-    this.apiService.getResource('/ijin', { sekolah: this.$store.state.user.sekolah.id }).then(data => {
+    this.apiService.getResource('/ijin', { sekolah: this.idSekolah }).then(data => {
       this.ajuanList = data;
     }).catch(err => this.$toast.error(err.toString()));
   }
@@ -339,7 +386,7 @@ export default class Home extends Vue {
 
   saveIjin() {
     this.$store.dispatch('showSpinner', 'MENGIRIM DATA');
-    this.ajuan.sekolah = this.$store.state.user.sekolah.id;
+    this.ajuan.sekolah = this.idSekolah;
     if (Array.isArray(this.ajuan.tanggal)) {
       this.ajuan.tanggal = this.ajuan.tanggal.join(',');
     }
@@ -359,7 +406,7 @@ export default class Home extends Vue {
   downloadReport() {
     this.$store.dispatch('showSpinner', 'MEN-GENERATE LAPORAN');
     this.apiService.download('/absensi/harian', {
-      institution: this.$store.state.user.sekolah.id,
+      institution: this.idSekolah,
       start: this.reportDate[0],
       end: this.reportDate[1],
       excel: 3
@@ -371,11 +418,63 @@ export default class Home extends Vue {
     });
   }
 
+  // BAGIAN AUTOSINKRON
+  // ----------------------------------------------------------------------------------
+  private isAsyncActive = false;
+  private async: { number: string; expired: string } = { number: '', expired: '' };
+  checkAsycActive() {
+    const sn = localStorage.getItem('asyncKey');
+    if (sn) {
+      const { number, expired } = JSON.parse(sn);
+      const now = moment().local().unix();
+      if (now > expired) {
+        // hapus sn
+        localStorage.removeItem('asyncKey');
+        this.saveAsyncNumber();
+      } else {
+        this.isAsyncActive = true;
+        this.async = {
+          number: number, 
+          // expired: moment.unix(expired).format('DD-MM-YYYY HH.mm')
+          expired: moment.unix(expired).utc().local().format('DD-MM-YYYY HH.mm')
+        };
+        // cron job activation scheduler
+        const rule = new schedule.RecurrenceRule();
+        rule.dayOfWeek = [1, 2, 3, 4, 5, 6];
+        rule.hour = [7, 9, 12, 14];
+        rule.minute = 45;
+        const j = schedule.scheduleJob(rule, () => {
+          this.syncronize();
+        });
+      }
+    }
+  }
+  saveAsyncNumber() {
+    // try ask server
+    this.apiService.checkSn({ sn: this.async.number, sekolah: this.idSekolah }).then(data => {
+      if ( ! data.valid) {
+        this.$toast.error('Kode Aktifasi Tidak Valid!');
+      } else {
+        localStorage.removeItem('asyncKey');
+        localStorage.setItem('asyncKey', JSON.stringify({
+          number: this.async.number,
+          expired: data.until
+        }));
+        this.isAsyncActive = true;
+        this.async.expired = moment.unix(data.until).utc().local().format('DD-MM-YYYY HH.mm');
+        this.$toast.success('Aktivasi Sukses!');
+      }
+    }).catch(err => {
+      this.$toast.error(err.toString());
+    });
+  }
+
   mounted() {
-    this.loadPegawai();
     this.loadSyncData();
     this.loadAjuan();
     this.sinkronDate = moment().format('DD/MM/YYYY');
+    this.loadPegawai();
+    this.checkAsycActive();
   }
 }
 </script>

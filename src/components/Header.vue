@@ -4,19 +4,28 @@
       <h5 class="font-weight-bold mb-0">{{sekolah}}</h5>
       <p class="font-weight-bold">{{dateToday}}<br>{{timeToday}} WIB</p>
     </div>
-    <div class="col-md-4 offset-md-4 text-right right-part">
-      <button v-if="sekolah != 'KOORDINATOR KECAMATAN'" type="button" class="btn btn-outline-info py-2 mr-2" title="setting database" data-toggle="modal" data-target="#fp-modal"><i class="icon-settings"></i></button>
+
+    <div class="col-md-5 offset-md-3 text-right right-part" v-if="sekolah != 'KOORDINATOR KECAMATAN'">
+      <span class="badge py-1 align-top mr-1" :class="dbActive ? 'badge-success' : 'badge-danger'">DB</span>
+      <span class="badge py-1 align-top mr-2" :class="sdkActive ? 'badge-success' : 'badge-danger'">SDK</span>
+
+      <button type="button" class="btn btn-outline-info py-2 mr-2" title="setting database" data-toggle="modal" data-target="#fp-modal"><i class="icon-settings"></i></button>
+      <button class="btn btn-lg btn-danger shadow-sm py-2" type="button" v-on:click="logout()">Hapus Session / Keluar</button>
+    </div>
+    <div class="col-md-4 offset-md-4 text-right right-part" v-else>
       <button class="btn btn-lg btn-danger shadow-sm py-2" type="button" v-on:click="logout()">Hapus Session / Keluar</button>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { Database } from '@/helpers/db';
+/* eslint-disable @typescript-eslint/no-var-requires */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import Session from '@/helpers/session';
+import { FbDb } from '@/services/fpdb';
+import { Sdk } from '@/services/sdk';
 import moment from 'moment';
 import { Component, Vue, Prop } from 'vue-property-decorator'
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const alertify = require('alertifyjs');
 
 @Component
@@ -25,11 +34,12 @@ export default class Header extends Vue {
 
   private dateToday = '';
   private timeToday = '';
+  private dbActive = false;
+  private sdkActive = false;
 
   logout() {
     Session.logout();
     this.$router.replace('/');
-    Database.close();
     document.title = `APLIKASI ABSENSI ${this.$store.state.version} - OPERATOR SEKOLAH`;
   }
 
@@ -48,10 +58,34 @@ export default class Header extends Vue {
     });
   }
 
+  checkDb() {
+    const fbDb: FbDb = FbDb.getInstance();
+    if (fbDb) {
+      fbDb.quickCheckConnection().then(() => {
+        this.dbActive = true;
+        this.$emit('dbActive');
+      });
+    }
+  }
+
+  checkSdk() {
+    const sdk: Sdk = Sdk.getInstance();
+    if (sdk) {
+      sdk.quickCheckConnection().then(() => {
+        this.sdkActive = true;
+        this.$emit('sdkActive');
+        this.checkDb();
+      }).catch(() => {
+        this.checkDb();
+      });
+    }
+  }
+
   mounted() {
     this.dateToday = moment().format('dddd, DD MMMM YYYY').toUpperCase();
     this.timeToday = moment().format('HH:mm');
-    this.fetchDateTime(); 
+    this.fetchDateTime();
+    this.checkSdk();
 
     setInterval(() => {
       const m = moment();

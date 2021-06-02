@@ -4,6 +4,7 @@ declare const $: any;
 
 export default class Api {
   private apiUrl: string = process.env.VUE_APP_APIURL || '';
+  private apiSnUrl: string = process.env.VUE_APP_APISNURL || '';
   
   /**
    * getter apiUrl
@@ -164,6 +165,20 @@ export default class Api {
         // console.log(event);
         // console.log(arg);
         resolve(args);
+      });
+    });
+  }
+
+  public checkSn(data: { sn: string; sekolah: number }): Promise<any> {
+    return new Promise((resolve, reject) => {
+      fetch(this.apiSnUrl + '/sn/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).then(response => {
+        resolve(response.json());
+      }).catch(err => {
+        reject(err);
       });
     });
   }
