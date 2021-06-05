@@ -68,6 +68,8 @@ export default class Session {
           this.fetchSaya(token).then(data => {
             resolve(data);
           }).catch(text => {
+            // remove token
+            localStorage.removeItem('token');
             reject(text);
           })
         });
