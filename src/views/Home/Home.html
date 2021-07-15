@@ -62,7 +62,7 @@
                       <small>Dalam beberapa hari kedepan, Anda dapat melakukan sinkron untuk tanggal-tanggal selain hari ini. Pastikan Anda melakukan sinkron pada tanggal-tanggal tersebut terutama tanggal yang belum pernah disinkron sebelumnya.</small> 
                     </p> -->
                     <p class="alert alert-success mb-3 p-1">
-                      <small>Sinkron absensi dilakukan dua kali dalam satu hari yaitu jam 07.00-10.00 untuk absensi masuk dan 12.00-15.00 untuk absensi pulang. Diluar jam tersebut tidak akan diproses oleh server</small>
+                      <small>Sinkron absensi dilakukan dua kali dalam satu hari yaitu jam 07.00-09.00 untuk absensi masuk dan 10.00-18.00 untuk absensi pulang. Diluar jam tersebut tidak akan diproses oleh server</small>
                     </p>
                     <date-picker :format="'DD/MM/YYYY'" v-model="sinkronDate" :value-type="'DD/MM/YYYY'" :disabled-date="disabledBefore1March"></date-picker>
                   </div>
@@ -268,7 +268,7 @@
         </div>
         <div class="modal-body">
           <form role="form" name="formAsync">
-            <p class="alert alert-info shadow-sm p-1 text-justify" style="line-height: 1rem;">Fitur Autosinkron adalah fitur dimana aplikasi akan melakukan sinkron absensi secara otomatis pada jam 07.45, 09.45, 12.45, 14.45 setiap hari. <strong>Pastikan SDK sudah diaktifkan dan ada kode aktivasi yang masih berlaku.</strong><br><br>
+            <p class="alert alert-info shadow-sm p-1 text-justify" style="line-height: 1rem;">Fitur Autosinkron adalah fitur dimana aplikasi akan melakukan sinkron absensi secara otomatis pada menit ke 20 setiap jam mulai dari 7 sampai 14 setiap hari. <strong>Pastikan SDK sudah diaktifkan dan ada kode aktivasi yang masih berlaku.</strong><br><br>
               <small><em>* Aktivasi SDK dan kode aktivasi dapat ditanyakan pada koordinator wilayah kecamatan masing-masing</em></small>
             </p>
             <div class="form-group">

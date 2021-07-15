@@ -5,6 +5,7 @@ declare const $: any;
 export default class Api {
   private apiUrl: string = process.env.VUE_APP_APIURL || '';
   private apiSnUrl: string = process.env.VUE_APP_APISNURL || '';
+  private proxyUrl: string = process.env.VUE_APP_PROXYURL || '';
   
   /**
    * getter apiUrl
@@ -15,6 +16,9 @@ export default class Api {
    */
   public get url(): string {
     return this.apiUrl;
+  }
+  public get proxy(): string {
+    return this.proxyUrl;
   }
 
   constructor() {
@@ -29,6 +33,8 @@ export default class Api {
 
   /**
    * GET resource
+   * 
+   * Untuk GET kita gunakan proxy
    *
    * @param {string} type
    * @param {*} [params=null]
@@ -37,26 +43,40 @@ export default class Api {
    */
   public getResource(type: string, params: any = null): Promise<any> {
     return new Promise((resolve, reject) => {
-      axios.get(this.apiUrl + type, { params: params, paramsSerializer: function(params) {
+      axios.get(this.proxyUrl + type, { params: params, paramsSerializer: function(params) {
         return $.param(params);
       } }).then(response => {
         if (response.headers['content-type'] != 'application/json') {
-          axios.get(this.apiUrl + type, { params: params, paramsSerializer: function(params) {
-            return $.param(params);
-          } }).then(response => {
-            if (response.headers['content-type'] != 'application/json') {
-              reject('Connection blocked');
-            } else {
-              resolve(response.data);
-            }
-          })
+          reject('Connection blocked');
         } else {
           resolve(response.data);
         }
-      }).catch(error => {
-        reject(error.response);
+      }).catch(err => {
+        reject(err.response);
       });
     });
+    
+    // return new Promise((resolve, reject) => {
+    //   axios.get(this.apiUrl + type, { params: params, paramsSerializer: function(params) {
+    //     return $.param(params);
+    //   } }).then(response => {
+    //     if (response.headers['content-type'] != 'application/json') {
+    //       axios.get(this.apiUrl + type, { params: params, paramsSerializer: function(params) {
+    //         return $.param(params);
+    //       } }).then(response => {
+    //         if (response.headers['content-type'] != 'application/json') {
+    //           reject('Connection blocked');
+    //         } else {
+    //           resolve(response.data);
+    //         }
+    //       })
+    //     } else {
+    //       resolve(response.data);
+    //     }
+    //   }).catch(error => {
+    //     reject(error.response);
+    //   });
+    // });
   }
 
   /**
@@ -140,6 +160,10 @@ export default class Api {
       }
     });
   }
+
+  public urlEncode(params: any): string {
+    return $.param(params);
+  }
   
   /**
    * DELETE Resource
@@ -150,7 +174,7 @@ export default class Api {
    */
   public deleteResource(type: string): Promise<any> {
     return new Promise((resolve, reject) => {
-      axios.delete(this.apiUrl + type).then(response => {
+      axios.delete(this.proxyUrl + type).then(response => {
         resolve(response.status == 204);
       }).catch(err => {
         reject(err.response);

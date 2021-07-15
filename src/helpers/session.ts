@@ -11,7 +11,7 @@ export default class Session {
 
   private static fetchSaya(token: string): Promise<any> {
     return new Promise((resolve, reject) => {
-      const url = Session.api.url + '/saya';
+      const url = Session.api.proxy + '/saya';
       fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -32,19 +32,26 @@ export default class Session {
   public static login(user: any): Promise<any> {
     return new Promise((resolve, reject) => {
       Session.init();
+      
+      // fetch(Session.api.proxy + '/login', {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/x-www-form-urlencoded'
+      //   },
+      //   body: Session.api.urlEncode(user)
+      // }).then(response => {
+      //   return response.json();
+      // }).catch(err => {
+      //   reject(err);
+      // });
+      
       Session.api.postResource('/login', user).then(data => {
         const token = data.token;
         localStorage.setItem('token', token);
-        const url = Session.api.url + '/saya';
         this.fetchSaya(token).then(data => {
           resolve(data);
         }).catch(text => {
-          // coba lagi
-          this.fetchSaya(token).then(data => {
-            resolve(data);
-          }).catch(text => {
-            reject(text);
-          });
+          reject(text);
         });
       }).catch(err => reject(err));
     });
@@ -62,21 +69,10 @@ export default class Session {
       this.fetchSaya(token).then(data => {
         resolve(data);
       }).catch(text => {
-        this.fetchSaya(token).then(data => {
-          resolve(data);
-        }).catch(text => {
-          this.fetchSaya(token).then(data => {
-            resolve(data);
-          }).catch(text => {
-            // remove token
-            localStorage.removeItem('token');
-            reject(text);
-          })
-        });
+        // remove token
+        localStorage.removeItem('token');
+        reject(text);
       });
-      // Session.api.getResource('/saya').then(data => {
-      //   resolve(data);
-      // }).catch(err => reject(err));
     });
   }
 

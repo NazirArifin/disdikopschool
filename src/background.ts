@@ -163,5 +163,20 @@ ipcMain.handle('get-app-path', async (event) => {
     app.relaunch();
     app.exit();
   });
+});
 
+ipcMain.handle('ping-finger-machine', (event, ...args): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    const exec = require('child_process').exec;
+    exec(`ping ${args[0]}`, function(err: any, stdout: string, stderr: any) {
+      if (err) {
+        reject(err); return;
+      }
+      if (stdout.search(`Reply from ${args[0]}: bytes=`) != -1) {
+        resolve(true);
+      } else {
+        reject('Unreachable');
+      }
+    });
+  });
 });

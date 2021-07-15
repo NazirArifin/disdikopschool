@@ -4,6 +4,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable no-unreachable */
 import { Component, Vue } from 'vue-property-decorator'
 import Header from '@/components/Header.vue'
 const DatePicker = require('vue2-datepicker').default
@@ -211,6 +212,9 @@ export default class Home extends Vue {
     try {
       let logs: any = [];
       if (this.sdkActive && this.isAsyncActive) {
+        // let's ping finger machine to make sure that it works
+        await ipcRenderer.invoke('ping-finger-machine', this.sdkConfig.ipmac);
+        // get log
         logs = await this.sdk.getScanLog(today);
       } else {
         logs = await this.fbDb.getScanLog(today);
@@ -224,7 +228,7 @@ export default class Home extends Vue {
         pins.push(p?.nip || '');
         names.push(p?.nama || '');
         aliases.push(p?.namaSingkat || '');
-        dateTimes.push(moment(v.scan_date).format('YYYY-MM-DD HH:mm:ss'));
+        dateTimes.push(moment((v.scan_date + '').replace(/\./g, ':')).format('YYYY-MM-DD HH:mm:ss'));
       });
            
       this.$store.dispatch('changeSpinnerMessage', 'MENGIRIM DATA KE SERVER');
@@ -441,8 +445,8 @@ export default class Home extends Vue {
         // cron job activation scheduler
         const rule = new schedule.RecurrenceRule();
         rule.dayOfWeek = [1, 2, 3, 4, 5, 6];
-        rule.hour = [7, 9, 12, 14];
-        rule.minute = 45;
+        rule.hour = [7, 8, 9, 10, 11, 12, 13, 14];
+        rule.minute = 20;
         const j = schedule.scheduleJob(rule, () => {
           this.syncronize();
         });

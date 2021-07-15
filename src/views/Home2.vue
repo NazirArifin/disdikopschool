@@ -162,7 +162,7 @@
                   <validation-provider slim name="deleteTransfer" rules="required">
                     <select name="deleteTransfer" id="deleteTransfer" v-model="deleteItem.transfer" class="form-control">
                       <option value="">-- pilih pegawai --</option>
-                      <option :disabled="v.id == deleteItem.id" :value="v.id" :key="v.id" v-for="v in pegawaiList">{{ v.id }} - {{v.nama}}</option>
+                      <option :disabled="v.id == deleteItem.id" :value="v.id" :key="v.id" v-for="v in pegawaiList">{{ v.nip }} - {{v.nama}}</option>
                     </select>
                   </validation-provider>
                 </div>
