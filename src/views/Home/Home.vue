@@ -426,7 +426,15 @@ export default class Home extends Vue {
   // ----------------------------------------------------------------------------------
   private isAsyncActive = false;
   private async: { number: string; expired: string } = { number: '', expired: '' };
-  checkAsycActive() {
+  randomIntFromInterval(min: number, max: number): number {
+    if (min > max) {
+      const t = min;
+      min = max;
+      max = t;
+    }
+    return Math.floor(Math.random() * (max - min + 1) + min);
+  }
+  async checkAsycActive() {
     const sn = localStorage.getItem('asyncKey');
     if (sn) {
       const { number, expired } = JSON.parse(sn);
@@ -439,17 +447,62 @@ export default class Home extends Vue {
         this.isAsyncActive = true;
         this.async = {
           number: number, 
-          // expired: moment.unix(expired).format('DD-MM-YYYY HH.mm')
           expired: moment.unix(expired).utc().local().format('DD-MM-YYYY HH.mm')
         };
-        // cron job activation scheduler
-        const rule = new schedule.RecurrenceRule();
-        rule.dayOfWeek = [1, 2, 3, 4, 5, 6];
-        rule.hour = [7, 8, 9, 10, 11, 12, 13, 14];
-        rule.minute = 20;
-        const j = schedule.scheduleJob(rule, () => {
-          this.syncronize();
-        });
+        
+        const shift: { libur: boolean; shift: { scanIn: string; scanOut: string } } = await this.apiService.getResource('/api/shift', { sekolah: this.idSekolah });
+        if ( ! shift.libur) {
+          const { scanIn, scanOut } = shift.shift;
+          const dayOfWeek = [1, 2, 3, 4, 5, 6];
+
+          // TODO: tes ujicoba
+          // const ruleInHours = [10, 11];
+          // const ruleInMinute = [8, 9, 10, 11, 12, 13, 14, 15, 16];
+          // const ruleIn = new schedule.RecurrenceRule();
+          // ruleIn.dayOfWeek = dayOfWeek;
+          // ruleIn.hour = ruleInHours;
+          // ruleIn.minute = ruleInMinute;
+          // const j1 = schedule.scheduleJob(ruleIn, () => {
+          //   console.log('called');
+          // });
+          
+          // untuk scan masuk
+          let split = scanIn.split(':');
+          let hour = parseInt(split[0]);
+          const ruleInHours = [hour, hour + 1, hour + 2];
+          let minute = this.randomIntFromInterval(0, 30);
+          const ruleInMinute = [minute, minute + 30];
+          const ruleIn = new schedule.RecurrenceRule();
+          ruleIn.dayOfWeek = dayOfWeek;
+          ruleIn.hour = ruleInHours;
+          ruleIn.minute = ruleInMinute;
+          const j1 = schedule.scheduleJob(ruleIn, () => {
+            this.syncronize();
+          });
+
+          // untuk scan pulang, jenjang korwil pulang ada yang 10:30
+          split = scanOut.split(':');
+          hour = parseInt(split[0]);
+          const ruleOutHours = [hour, hour + 1, hour + 2];
+          minute = this.randomIntFromInterval(parseInt(split[1]), parseInt(split[1]) + 30);
+          const ruleOutMinute = [minute, Math.abs((minute + 30) - 60)];
+          const ruleOut = new schedule.RecurrenceRule();
+          ruleOut.dayOfWeek = dayOfWeek;
+          ruleOut.hour = ruleOutHours;
+          ruleOut.minute = ruleOutMinute;
+          const j2 = schedule.scheduleJob(ruleOut, () => {
+            this.syncronize();
+          });
+        }
+        
+        // // cron job activation scheduler
+        // const rule = new schedule.RecurrenceRule();
+        // rule.dayOfWeek = [1, 2, 3, 4, 5, 6];
+        // rule.hour = [7, 8, 9, 10, 11, 12, 13, 14];
+        // rule.minute = 20;
+        // const j = schedule.scheduleJob(rule, () => {
+        //   this.syncronize();
+        // });
       }
     }
   }

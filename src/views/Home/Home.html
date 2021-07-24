@@ -62,7 +62,8 @@
                       <small>Dalam beberapa hari kedepan, Anda dapat melakukan sinkron untuk tanggal-tanggal selain hari ini. Pastikan Anda melakukan sinkron pada tanggal-tanggal tersebut terutama tanggal yang belum pernah disinkron sebelumnya.</small> 
                     </p> -->
                     <p class="alert alert-success mb-3 p-1">
-                      <small>Sinkron absensi dilakukan dua kali dalam satu hari yaitu jam 07.00-09.00 untuk absensi masuk dan 10.00-18.00 untuk absensi pulang. Diluar jam tersebut tidak akan diproses oleh server</small>
+                      <small>Sinkron absensi dilakukan dua kali dalam satu hari sesuai jadwal masuk dan pulang dengan durasi 2,5 jam untuk masing-masing jadwal. Diluar jam tersebut tidak akan diproses oleh server</small>
+                      <!-- <small>Sinkron absensi dilakukan dua kali dalam satu hari yaitu jam 07.00-09.00 untuk absensi masuk dan 10.00-18.00 untuk absensi pulang. Diluar jam tersebut tidak akan diproses oleh server</small> -->
                     </p>
                     <date-picker :format="'DD/MM/YYYY'" v-model="sinkronDate" :value-type="'DD/MM/YYYY'" :disabled-date="disabledBefore1March"></date-picker>
                   </div>
@@ -309,8 +310,11 @@
               <form role="form" name="formSDK">
                 <p class="alert alert-warning shadow-sm p-1"><small>Pastikan SDK sudah terinstall di komputer ini. Hubungi koordinator wilayah untuk memasang SDK</small></p>
                 <div class="form-group">
-                  <label for="pathd">Path Instalasi SDK</label>
+                  <label for="pathd">Path Instalasi SDK*</label>
                   <input type="text" name="path" id="pathd" class="form-control" minlength="4" maxlength="60" required v-model="sdkConfig.instpath" placeholder="Path Instalasi" :disabled="checkingConn">
+                  <small class="form-text text-muted">
+                    (*) Install SDK di <strong>selain folder Program Files</strong> agar aplikasi memiliki akses untuk menulis file pengaturan di folder instalasi SDK
+                  </small>
                 </div>
                 <div class="form-group">
                   <label for="hostd">IP Host (Komputer)</label>
