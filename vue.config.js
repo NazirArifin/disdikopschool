@@ -22,6 +22,8 @@ module.exports = {
         publish: [{
           provider: 'github',
           private: true,
+          owner: 'NazirArifin',
+          repo: 'disdikopschool',
           releaseType: 'release'
         }],
         win: {
