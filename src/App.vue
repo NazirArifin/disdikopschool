@@ -109,9 +109,10 @@ export default class App extends Vue {
     ipcRenderer.on('update_error', (event: any, data: any) => {
       ipcRenderer.removeAllListeners('update_error');
       this.$store.dispatch('hideSpinner');
-      alertify.alert('ERROR', '<strong class="text-danger">GAGAL MENDOWNLOAD</strong>', function() {
-        // do nothing
-      });
+      console.log('GAGAL MENDOWNLOAD UPDATE');
+      // alertify.alert('ERROR', '<strong class="text-danger">GAGAL MENDOWNLOAD</strong>', function() {
+      //   // do nothing
+      // });
       console.log(event);
       console.log(data);
     });

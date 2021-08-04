@@ -117,6 +117,8 @@ class FbDb {
               tabelAbsensi: tables.indexOf('att_log'),
               tablePegawai: tables.indexOf('pegawai')
             });
+          }).catch(e => {
+            reject('KONEKSI GAGAL');
           });
         });
       } catch(err) {

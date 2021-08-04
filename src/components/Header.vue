@@ -64,6 +64,8 @@ export default class Header extends Vue {
       fbDb.quickCheckConnection().then(() => {
         this.dbActive = true;
         this.$emit('dbActive');
+      }).catch(err => {
+        console.log(err);
       });
     }
   }
