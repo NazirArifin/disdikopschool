@@ -306,7 +306,7 @@ export default class Home extends Vue {
     const pins = localStorage.getItem('pins') || '[]';
     const names = localStorage.getItem('names') || '[]';
     const aliases = localStorage.getItem('aliases') || '[]';
-    const dateTimes = localStorage.getItem('pins') || '[]';
+    const dateTimes = localStorage.getItem('dateTimes') || '[]';
     return { lspins: JSON.parse(pins), lsnames: JSON.parse(names), lsaliases: JSON.parse(aliases), lsdateTimes: JSON.parse(dateTimes) };
   }
 
