@@ -204,10 +204,10 @@ export default class Home extends Vue {
     const todayTime = moment().local().format('YYYY-MM-DD HH:mm:ss');
     // const today = todayTime.split(' ')[0];
     const today = this.sinkronDate.split('/').reverse().join('-');
-    const pins: string[] = [];
-    const names: string[] = [];
-    const aliases: string[] = [];
-    const dateTimes: string[] = [];
+    let pins: string[] = [];
+    let names: string[] = [];
+    let aliases: string[] = [];
+    let dateTimes: string[] = [];
 
     try {
       let logs: any[] = [];
@@ -237,37 +237,47 @@ export default class Home extends Vue {
       // SOLUSI:
       // kita simpan di localstorage, dengan tanggal, jika tanggal hari ini maka
       // log di append, jika bukan maka log di replace dan tanggal diubah
-      const storageDate = localStorage.getItem('date');
-      if (storageDate === null) {
-        // date di localStorage null berarti baru dijalankan di app baru
-        this.saveAbsensiToLocalStorage(today, JSON.stringify(pins), JSON.stringify(names), JSON.stringify(aliases), JSON.stringify(dateTimes));
-      } else {
-        if (storageDate != today) {
-          // jika tanggal di localStorage tidak sama dengan hari ini berarti syncron pertama kali hari ini
-          // kita pastikan tanggal berubah biarpun datanya kosong
+
+      // 1.1.6
+      // hanya untuk yang pakai sdk
+      if (this.sdkActive && this.isAsyncActive) {
+        const storageDate = localStorage.getItem('date');
+        if (storageDate === null) {
+          // date di localStorage null berarti baru dijalankan di app baru
           this.saveAbsensiToLocalStorage(today, JSON.stringify(pins), JSON.stringify(names), JSON.stringify(aliases), JSON.stringify(dateTimes));
         } else {
-          if (logs.length > 0) {
-            // tanggal sekarang dengan yang di localStorage maka data log yang baru di push ke array
-            const { lspins, lsnames, lsaliases, lsdateTimes } = this.getAbsensiFromLocalStorage();
-            // kemudian hasil push array disimpan ke dalam localStorage lagi
-            this.saveAbsensiToLocalStorage(null, 
-              JSON.stringify([...lspins, ...pins]), 
-              JSON.stringify([...lsnames, ...names]), 
-              JSON.stringify([...lsaliases, ...aliases]), 
-              JSON.stringify([...lsdateTimes, ...dateTimes])
-            );
+          if (storageDate != today) {
+            // jika tanggal di localStorage tidak sama dengan hari ini berarti syncron pertama kali hari ini
+            // kita pastikan tanggal berubah biarpun datanya kosong
+            this.saveAbsensiToLocalStorage(today, JSON.stringify(pins), JSON.stringify(names), JSON.stringify(aliases), JSON.stringify(dateTimes));
+          } else {
+            if (logs.length > 0) {
+              // tanggal sekarang dengan yang di localStorage maka data log yang baru di push ke array
+              const { lspins, lsnames, lsaliases, lsdateTimes } = this.getAbsensiFromLocalStorage();
+              // kemudian hasil push array disimpan ke dalam localStorage lagi
+              this.saveAbsensiToLocalStorage(null, 
+                JSON.stringify([...lspins, ...pins]), 
+                JSON.stringify([...lsnames, ...names]), 
+                JSON.stringify([...lsaliases, ...aliases]), 
+                JSON.stringify([...lsdateTimes, ...dateTimes])
+              );
+            }
           }
         }
+        // ambil datanya dari localStorage
+        const { lspins, lsnames, lsaliases, lsdateTimes } = this.getAbsensiFromLocalStorage();
+        pins = lspins;
+        names = lsnames;
+        aliases = lsaliases;
+        dateTimes = lsdateTimes;
       }
-      // ambil datanya dari localStorage
-      const { lspins, lsnames, lsaliases, lsdateTimes } = this.getAbsensiFromLocalStorage();
+
       this.$store.dispatch('changeSpinnerMessage', 'MENGIRIM DATA KE SERVER');
       // kirimkan ke server
       this.apiService.postResource('/sinkron', {
         // pin: pins, name: names, alias: aliases, dateTime: dateTimes
         // pin: JSON.stringify(pins), name: JSON.stringify(names), alias: JSON.stringify(aliases), dateTime: JSON.stringify(dateTimes)
-        pin: JSON.stringify(lspins), name: JSON.stringify(lsnames), alias: JSON.stringify(lsaliases), dateTime: JSON.stringify(lsdateTimes)
+        pin: JSON.stringify(pins), name: JSON.stringify(names), alias: JSON.stringify(aliases), dateTime: JSON.stringify(dateTimes)
       }, true).then(async data => {
         this.$store.dispatch('hideSpinner')
         // tambahkan di database
@@ -306,6 +316,7 @@ export default class Home extends Vue {
     const pins = localStorage.getItem('pins') || '[]';
     const names = localStorage.getItem('names') || '[]';
     const aliases = localStorage.getItem('aliases') || '[]';
+    // 1.1.5 salah ambil dateTimes malah ambil pins
     const dateTimes = localStorage.getItem('dateTimes') || '[]';
     return { lspins: JSON.parse(pins), lsnames: JSON.parse(names), lsaliases: JSON.parse(aliases), lsdateTimes: JSON.parse(dateTimes) };
   }
@@ -547,6 +558,9 @@ export default class Home extends Vue {
           });
         }
         
+        // 1.1.6 autosync waktu start pertama
+        this.syncronize();
+
         // // cron job activation scheduler
         // const rule = new schedule.RecurrenceRule();
         // rule.dayOfWeek = [1, 2, 3, 4, 5, 6];
