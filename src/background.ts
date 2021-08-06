@@ -80,6 +80,10 @@ if ( ! gotTheLock) {
   });
 }
 
+app.setLoginItemSettings({
+  openAtLogin: true
+});
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -93,6 +97,19 @@ app.on('ready', async () => {
     }
   }
   createWindow()
+  // const tray = new Tray('./icon.ico');
+  // const contextMenu = Menu.buildFromTemplate([
+  //   { 
+  //     label: 'Tampilkan', type: 'normal', click: () => {
+
+  //     },
+  //   },
+  //   {
+  //     label: 'Tutup', type: 'normal', click: () => app.quit()
+  //   }
+  // ]);
+  // tray.setToolTip('opschool');
+  // tray.setContextMenu(contextMenu);
 })
 
 // Exit cleanly on request from parent process in development mode.

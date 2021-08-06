@@ -26,7 +26,7 @@ const router = new VueRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  if (to.meta.requiresAuth) {
+  if (to.meta!.requiresAuth) {
     if (Session.getToken()) {
       next();
     } else {

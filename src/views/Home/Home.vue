@@ -219,7 +219,7 @@ export default class Home extends Vue {
       } else {
         logs = await this.fbDb.getScanLog(today);
       }
-
+      
       logs.filter((v: any) => {
         const p = this.pegawaiList.find((k: PegawaiType) => k.pin == v.pin);
         return p?.active;
@@ -497,17 +497,21 @@ export default class Home extends Vue {
     }
     return Math.floor(Math.random() * (max - min + 1) + min);
   }
+
+  // mengecek apakah sn autosync aktif
   async checkAsycActive() {
     const sn = localStorage.getItem('asyncKey');
     if (sn) {
       const { number, expired } = JSON.parse(sn);
       const now = moment().local().unix();
+      this.isAsyncActive = true;
       if (now > expired) {
-        // hapus sn
         localStorage.removeItem('asyncKey');
-        this.saveAsyncNumber();
-      } else {
-        this.isAsyncActive = true;
+        this.isAsyncActive = await this.saveAsyncNumber();
+      }
+      
+      // hanya jika autosync aktif kita set beberapa jam untuk sinkron
+      if (this.isAsyncActive) {
         this.async = {
           number: number, 
           expired: moment.unix(expired).utc().local().format('DD-MM-YYYY HH.mm')
@@ -557,38 +561,38 @@ export default class Home extends Vue {
             this.syncronize();
           });
         }
-        
-        // 1.1.6 autosync waktu start pertama
-        this.syncronize();
-
-        // // cron job activation scheduler
-        // const rule = new schedule.RecurrenceRule();
-        // rule.dayOfWeek = [1, 2, 3, 4, 5, 6];
-        // rule.hour = [7, 8, 9, 10, 11, 12, 13, 14];
-        // rule.minute = 20;
-        // const j = schedule.scheduleJob(rule, () => {
-        //   this.syncronize();
-        // });
       }
+      
+      // 1.1.6 autosync waktu start pertama
+      this.syncronize();
+    } else {
+      // 1.1.6 autosync waktu start pertama
+      this.syncronize();
     }
   }
-  saveAsyncNumber() {
-    // try ask server
-    this.apiService.checkSn({ sn: this.async.number, sekolah: this.idSekolah }).then(data => {
-      if ( ! data.valid) {
-        this.$toast.error('Kode Aktifasi Tidak Valid!');
-      } else {
-        localStorage.removeItem('asyncKey');
-        localStorage.setItem('asyncKey', JSON.stringify({
-          number: this.async.number,
-          expired: data.until
-        }));
-        this.isAsyncActive = true;
-        this.async.expired = moment.unix(data.until).utc().local().format('DD-MM-YYYY HH.mm');
-        this.$toast.success('Aktivasi Sukses!');
-      }
-    }).catch(err => {
-      this.$toast.error(err.toString());
+
+  // try ask server apakah ada sn yang aktif
+  saveAsyncNumber(): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this.apiService.checkSn({ sn: this.async.number, sekolah: this.idSekolah }).then(data => {
+        if ( ! data.valid) {
+          this.$toast.error('Kode Aktifasi Tidak Valid!');
+          reject(false);
+        } else {
+          localStorage.removeItem('asyncKey');
+          localStorage.setItem('asyncKey', JSON.stringify({
+            number: this.async.number,
+            expired: data.until
+          }));
+          this.isAsyncActive = true;
+          this.async.expired = moment.unix(data.until).utc().local().format('DD-MM-YYYY HH.mm');
+          this.$toast.success('Aktivasi Sukses!');
+          resolve(true);
+        }
+      }).catch(err => {
+        this.$toast.error(err.toString());
+        reject(false);
+      });
     });
   }
 

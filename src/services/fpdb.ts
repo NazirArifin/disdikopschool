@@ -136,6 +136,8 @@ class FbDb {
             return;
           }
           resolve(logs);
+        }).catch(e => {
+          reject('Query Scanlog gagal')          
         });
       } catch(err) {
         reject(err);
