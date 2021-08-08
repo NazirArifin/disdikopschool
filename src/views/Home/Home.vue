@@ -272,28 +272,31 @@ export default class Home extends Vue {
         dateTimes = lsdateTimes;
       }
 
-      this.$store.dispatch('changeSpinnerMessage', 'MENGIRIM DATA KE SERVER');
-      // kirimkan ke server
-      this.apiService.postResource('/sinkron', {
-        // pin: pins, name: names, alias: aliases, dateTime: dateTimes
-        // pin: JSON.stringify(pins), name: JSON.stringify(names), alias: JSON.stringify(aliases), dateTime: JSON.stringify(dateTimes)
-        pin: JSON.stringify(pins), name: JSON.stringify(names), alias: JSON.stringify(aliases), dateTime: JSON.stringify(dateTimes)
-      }, true).then(async data => {
-        this.$store.dispatch('hideSpinner')
-        // tambahkan di database
-        if (data.success) {
-          this.$toast.success(`SUKSES: JUMLAH DATA TERPROSES: ${data.count}`);
+      // kirim ke server hanya jika tidak kosong
+      if (pins.length > 0) {
+        this.$store.dispatch('changeSpinnerMessage', 'MENGIRIM DATA KE SERVER');
+        // kirimkan ke server
+        this.apiService.postResource('/sinkron', {
+          // pin: pins, name: names, alias: aliases, dateTime: dateTimes
+          // pin: JSON.stringify(pins), name: JSON.stringify(names), alias: JSON.stringify(aliases), dateTime: JSON.stringify(dateTimes)
+          pin: JSON.stringify(pins), name: JSON.stringify(names), alias: JSON.stringify(aliases), dateTime: JSON.stringify(dateTimes)
+        }, true).then(async data => {
+          this.$store.dispatch('hideSpinner')
+          // tambahkan di database
+          if (data.success) {
+            this.$toast.success(`SUKSES: JUMLAH DATA TERPROSES: ${data.count}`);
+            this.activateIdling();
+            await this.syncDb.insert({ date: todayTime, count: data.count });
+            this.loadSyncData();
+          } else {
+            this.$toast.error('ERROR: ' + data.message);
+          }
+        }).catch(err => {
+          this.$store.dispatch('hideSpinner');
+          this.$toast.error('ERROR: ' + err.data.message);
           this.activateIdling();
-          await this.syncDb.insert({ date: todayTime, count: data.count });
-          this.loadSyncData();
-        } else {
-          this.$toast.error('ERROR: ' + data.message);
-        }
-      }).catch(err => {
-        this.$store.dispatch('hideSpinner');
-        this.$toast.error('ERROR: ' + err.data.message);
-        this.activateIdling();
-      });
+        });
+      }
     } catch(err) {
       this.$store.dispatch('hideSpinner');
       this.$toast.error(err.toString());
