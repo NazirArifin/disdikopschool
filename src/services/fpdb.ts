@@ -132,12 +132,12 @@ class FbDb {
       try {
         Database.query(`SELECT scan_date, pin FROM att_log WHERE DATE(scan_date) = ? ORDER BY scan_date`, [today]).then(logs => {
           if (logs.length == 0) {
-            reject('TIDAK ADA DATA ABSENSI DI DATABASE  UNTUK HARI UNTUK INI');
+            reject('TIDAK ADA DATA ABSENSI DI DATABASE HARI INI');
             return;
           }
           resolve(logs);
         }).catch(e => {
-          reject('Query Scanlog gagal')          
+          reject(e)
         });
       } catch(err) {
         reject(err);

@@ -5,7 +5,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable no-unreachable */
-import { Component, Vue } from 'vue-property-decorator'
+import { Component, Vue, Watch } from 'vue-property-decorator'
 import Header from '@/components/Header.vue'
 const DatePicker = require('vue2-datepicker').default
 import 'vue2-datepicker/locale/id'
@@ -197,135 +197,221 @@ export default class Home extends Vue {
 
   private userList: readonly { pin: string; name: string }[] = [];
   private logList: readonly { pin: string; dateTime: string }[] = [];
+  
+  // 1.1.8 rewrite syncronize, harapannya lebih mudah dibaca dan lebih mudah di debug
   async syncronize() {
-    this.$store.dispatch('showSpinner', 'MENGAMBIL ABSENSI');
-    
-    // kita cari log di sinkronDate
-    const todayTime = moment().local().format('YYYY-MM-DD HH:mm:ss');
-    // const today = todayTime.split(' ')[0];
-    const today = this.sinkronDate.split('/').reverse().join('-');
-    let pins: string[] = [];
-    let names: string[] = [];
-    let aliases: string[] = [];
-    let dateTimes: string[] = [];
 
+    const today = this.sinkronDate.split('/').reverse().join('-');
+    let logs: { pin: string; name: string; alias: string; dateTime: string }[] = [];
     try {
-      let logs: any[] = [];
-      if (this.sdkActive && this.isAsyncActive) {
-        // let's ping finger machine to make sure that it works
-        await ipcRenderer.invoke('ping-finger-machine', this.sdkConfig.ipmac);
-        // get log
-        logs = await this.sdk.getScanLog(today);
-      } else {
-        logs = await this.fbDb.getScanLog(today);
-      }
+      this.$store.dispatch('showSpinner', 'MENGAMBIL ABSENSI');
       
-      logs.filter((v: any) => {
+      // prioritas pengambilan data log
+      let tempLogs: any[] = [];
+      let useSdk = false;
+      if (this.sdkActive && this.isAsyncActive) {
+        tempLogs = await this.sdk.getScanLog(today);
+        useSdk = true;
+      } else {
+        tempLogs = await this.fbDb.getScanLog(today);
+      }
+
+      // variabel logs berisi templog yang raw di filter dan di map
+      logs = tempLogs.filter((v: any) => {
         const p = this.pegawaiList.find((k: PegawaiType) => k.pin == v.pin);
         return p?.active;
-      }).forEach((v: any) => {
+      }).map((v: any) => {
         const p = this.pegawaiList.find((k: PegawaiType) => k.pin == v.pin);
-        pins.push(p?.nip || '');
-        names.push(p?.nama || '');
-        aliases.push(p?.namaSingkat || '');
-        dateTimes.push(moment((v.scan_date + '').replace(/\./g, ':')).format('YYYY-MM-DD HH:mm:ss'));
+        return {
+          pin: p?.nip || '', name: p?.nama || '', alias: p?.namaSingkat || '', 
+          dateTime: moment((v.scan_date + '').replace(/\./g, ':')).format('YYYY-MM-DD HH:mm:ss')
+        };
       });
 
-      // 1.1.4
-      // kita ingin agar log pada hari tersebut tetap tersimpan di memory untuk
-      // proses sinkron berikutnya jika proses sinkron sekarang gagal
-      // SOLUSI:
-      // kita simpan di localstorage, dengan tanggal, jika tanggal hari ini maka
-      // log di append, jika bukan maka log di replace dan tanggal diubah
+      if (useSdk) {
+        // 1.1.8 tulis ke file untuk di append hanya jika yang pakai sdk, jika pakai database tidak perlu
+        // karena di database selalu ada data untuk hari ini
+        // const data = await ipcRenderer.invoke('write-log', '2021-09-11', [ { 'scan_date': '2021-08-11 10.00.00', pin: '1212202' } ]);
+        logs = await ipcRenderer.invoke('write-log', today, logs);
+      }
+      // jika tidak ada data baru yang dapat dikirimkan ke server maka kita throw
+      if (logs.length == 0) {
+        throw '';
+      }
 
-      // 1.1.6
-      // hanya untuk yang pakai sdk
-      if (this.sdkActive && this.isAsyncActive) {
-        const storageDate = localStorage.getItem('date');
-        if (storageDate === null) {
-          // date di localStorage null berarti baru dijalankan di app baru
-          this.saveAbsensiToLocalStorage(today, JSON.stringify(pins), JSON.stringify(names), JSON.stringify(aliases), JSON.stringify(dateTimes));
-        } else {
-          if (storageDate != today) {
-            // jika tanggal di localStorage tidak sama dengan hari ini berarti syncron pertama kali hari ini
-            // kita pastikan tanggal berubah biarpun datanya kosong
-            this.saveAbsensiToLocalStorage(today, JSON.stringify(pins), JSON.stringify(names), JSON.stringify(aliases), JSON.stringify(dateTimes));
-          } else {
-            if (logs.length > 0) {
-              // tanggal sekarang dengan yang di localStorage maka data log yang baru di push ke array
-              const { lspins, lsnames, lsaliases, lsdateTimes } = this.getAbsensiFromLocalStorage();
-              // kemudian hasil push array disimpan ke dalam localStorage lagi
-              this.saveAbsensiToLocalStorage(null, 
-                JSON.stringify([...lspins, ...pins]), 
-                JSON.stringify([...lsnames, ...names]), 
-                JSON.stringify([...lsaliases, ...aliases]), 
-                JSON.stringify([...lsdateTimes, ...dateTimes])
-              );
+      this.$store.dispatch('changeSpinnerMessage', 'MENGIRIM DATA KE SERVER');
+      const data = await this.apiService.postResource('/sinkron', {
+        pin: JSON.stringify(logs.map(v => v.pin)),
+        name: JSON.stringify(logs.map(v => v.name)),
+        alias: JSON.stringify(logs.map(v => v.alias)),
+        dateTime: JSON.stringify(logs.map(v => v.dateTime))
+      });
+      this.$store.dispatch('hideSpinner');
+      if (data.success) {
+        this.$toast.success(`SUKSES: JUMLAH DATA TERPROSES: ${data.count}`);
+        this.activateIdling();
+        await this.syncDb.insert({ date: moment().local().format('YYYY-MM-DD HH:mm:ss'), count: data.count });
+        this.loadSyncData();
+      }
+    } catch(err) {
+      // pastikan 
+      this.$store.dispatch('hideSpinner');
+      // 1.1.8 extract object jika bukan string
+      if (typeof(err) != 'string') {
+        const message = err.toString();
+        if (message == 'Object') {
+          // extract
+          const temp: string[] = [];
+          for (const key in err) {
+            if (Object.prototype.hasOwnProperty.call(err, key)) {
+              temp.push(`${key}: ${err[key]}`);
             }
           }
+          this.$toast.error(temp.join(', '));
+        } else {
+          this.$toast.error(message);
         }
-        // ambil datanya dari localStorage
-        const { lspins, lsnames, lsaliases, lsdateTimes } = this.getAbsensiFromLocalStorage();
-        pins = lspins;
-        names = lsnames;
-        aliases = lsaliases;
-        dateTimes = lsdateTimes;
+      } else {
+        if (err.length > 0) {
+          this.$toast.error(err);
+        }
       }
+    }
 
-      // kirim ke server hanya jika tidak kosong
-      if (pins.length > 0) {
-        this.$store.dispatch('changeSpinnerMessage', 'MENGIRIM DATA KE SERVER');
-        // kirimkan ke server
-        this.apiService.postResource('/sinkron', {
-          // pin: pins, name: names, alias: aliases, dateTime: dateTimes
-          // pin: JSON.stringify(pins), name: JSON.stringify(names), alias: JSON.stringify(aliases), dateTime: JSON.stringify(dateTimes)
-          pin: JSON.stringify(pins), name: JSON.stringify(names), alias: JSON.stringify(aliases), dateTime: JSON.stringify(dateTimes)
-        }, true).then(async data => {
-          this.$store.dispatch('hideSpinner')
-          // tambahkan di database
-          if (data.success) {
-            this.$toast.success(`SUKSES: JUMLAH DATA TERPROSES: ${data.count}`);
-            this.activateIdling();
-            await this.syncDb.insert({ date: todayTime, count: data.count });
-            this.loadSyncData();
-          } else {
-            this.$toast.error('ERROR: ' + data.message);
-          }
-        }).catch(err => {
-          this.$store.dispatch('hideSpinner');
-          this.$toast.error('ERROR: ' + err.data.message);
-          this.activateIdling();
-        });
-      }
-    } catch(err) {
-      this.$store.dispatch('hideSpinner');
-      this.$toast.error(err.toString());
-    }
   }
-  private saveAbsensiToLocalStorage(today: string|null, pins: string, names: string, aliases: string, dateTimes: string) {
-    try {
-      if (today !== null) {
-        localStorage.setItem('date', today);
-      }
-      localStorage.setItem('pins', pins);
-      localStorage.setItem('names', names);
-      localStorage.setItem('aliases', aliases);
-      localStorage.setItem('dateTimes', dateTimes);
-    } catch(err) {
-      console.log(err);
-    }
-  }
-  private getAbsensiFromLocalStorage(): { lspins: string[]; lsnames: string[]; lsaliases: string[]; lsdateTimes: string[] } {
-    const pins = localStorage.getItem('pins') || '[]';
-    const names = localStorage.getItem('names') || '[]';
-    const aliases = localStorage.getItem('aliases') || '[]';
-    // 1.1.5 salah ambil dateTimes malah ambil pins
-    const dateTimes = localStorage.getItem('dateTimes') || '[]';
-    return { lspins: JSON.parse(pins), lsnames: JSON.parse(names), lsaliases: JSON.parse(aliases), lsdateTimes: JSON.parse(dateTimes) };
-  }
+
+
+
+  // async syncronize() {
+  //   this.$store.dispatch('showSpinner', 'MENGAMBIL ABSENSI');
+    
+  //   // kita cari log di sinkronDate
+  //   const todayTime = moment().local().format('YYYY-MM-DD HH:mm:ss');
+  //   // const today = todayTime.split(' ')[0];
+  //   const today = this.sinkronDate.split('/').reverse().join('-');
+  //   let pins: string[] = [];
+  //   let names: string[] = [];
+  //   let aliases: string[] = [];
+  //   let dateTimes: string[] = [];
+
+  //   try {
+  //     let logs: any[] = [];
+  //     if (this.sdkActive && this.isAsyncActive) {
+  //       // let's ping finger machine to make sure that it works
+  //       await ipcRenderer.invoke('ping-finger-machine', this.sdkConfig.ipmac);
+  //       // get log
+  //       logs = await this.sdk.getScanLog(today);
+  //     } else {
+  //       logs = await this.fbDb.getScanLog(today);
+  //     }
+      
+  //     logs.filter((v: any) => {
+  //       const p = this.pegawaiList.find((k: PegawaiType) => k.pin == v.pin);
+  //       return p?.active;
+  //     }).forEach((v: any) => {
+  //       const p = this.pegawaiList.find((k: PegawaiType) => k.pin == v.pin);
+  //       pins.push(p?.nip || '');
+  //       names.push(p?.nama || '');
+  //       aliases.push(p?.namaSingkat || '');
+  //       dateTimes.push(moment((v.scan_date + '').replace(/\./g, ':')).format('YYYY-MM-DD HH:mm:ss'));
+  //     });
+
+  //     // 1.1.4
+  //     // kita ingin agar log pada hari tersebut tetap tersimpan di memory untuk
+  //     // proses sinkron berikutnya jika proses sinkron sekarang gagal
+  //     // SOLUSI:
+  //     // kita simpan di localstorage, dengan tanggal, jika tanggal hari ini maka
+  //     // log di append, jika bukan maka log di replace dan tanggal diubah
+
+  //     // 1.1.6
+  //     // hanya untuk yang pakai sdk
+  //     if (this.sdkActive && this.isAsyncActive) {
+  //       const storageDate = localStorage.getItem('date');
+  //       if (storageDate === null) {
+  //         // date di localStorage null berarti baru dijalankan di app baru
+  //         this.saveAbsensiToLocalStorage(today, JSON.stringify(pins), JSON.stringify(names), JSON.stringify(aliases), JSON.stringify(dateTimes));
+  //       } else {
+  //         if (storageDate != today) {
+  //           // jika tanggal di localStorage tidak sama dengan hari ini berarti syncron pertama kali hari ini
+  //           // kita pastikan tanggal berubah biarpun datanya kosong
+  //           this.saveAbsensiToLocalStorage(today, JSON.stringify(pins), JSON.stringify(names), JSON.stringify(aliases), JSON.stringify(dateTimes));
+  //         } else {
+  //           if (logs.length > 0) {
+  //             // tanggal sekarang dengan yang di localStorage maka data log yang baru di push ke array
+  //             const { lspins, lsnames, lsaliases, lsdateTimes } = this.getAbsensiFromLocalStorage();
+  //             // kemudian hasil push array disimpan ke dalam localStorage lagi
+  //             this.saveAbsensiToLocalStorage(null, 
+  //               JSON.stringify([...lspins, ...pins]), 
+  //               JSON.stringify([...lsnames, ...names]), 
+  //               JSON.stringify([...lsaliases, ...aliases]), 
+  //               JSON.stringify([...lsdateTimes, ...dateTimes])
+  //             );
+  //           }
+  //         }
+  //       }
+  //       // ambil datanya dari localStorage
+  //       const { lspins, lsnames, lsaliases, lsdateTimes } = this.getAbsensiFromLocalStorage();
+  //       pins = lspins;
+  //       names = lsnames;
+  //       aliases = lsaliases;
+  //       dateTimes = lsdateTimes;
+  //     }
+
+  //     // kirim ke server hanya jika tidak kosong
+  //     if (pins.length > 0) {
+  //       this.$store.dispatch('changeSpinnerMessage', 'MENGIRIM DATA KE SERVER');
+  //       // kirimkan ke server
+  //       this.apiService.postResource('/sinkron', {
+  //         // pin: pins, name: names, alias: aliases, dateTime: dateTimes
+  //         // pin: JSON.stringify(pins), name: JSON.stringify(names), alias: JSON.stringify(aliases), dateTime: JSON.stringify(dateTimes)
+  //         pin: JSON.stringify(pins), name: JSON.stringify(names), alias: JSON.stringify(aliases), dateTime: JSON.stringify(dateTimes)
+  //       }, true).then(async data => {
+  //         this.$store.dispatch('hideSpinner')
+  //         // tambahkan di database
+  //         if (data.success) {
+  //           this.$toast.success(`SUKSES: JUMLAH DATA TERPROSES: ${data.count}`);
+  //           this.activateIdling();
+  //           await this.syncDb.insert({ date: todayTime, count: data.count });
+  //           this.loadSyncData();
+  //         } else {
+  //           this.$toast.error('ERROR: ' + data.message);
+  //         }
+  //       }).catch(err => {
+  //         this.$store.dispatch('hideSpinner');
+  //         this.$toast.error('ERROR: ' + err.data.message);
+  //         this.activateIdling();
+  //       });
+  //     }
+  //   } catch(err) {
+  //     this.$store.dispatch('hideSpinner');
+  //     this.$toast.error(err.toString());
+  //   }
+  // }
+  // private saveAbsensiToLocalStorage(today: string|null, pins: string, names: string, aliases: string, dateTimes: string) {
+  //   try {
+  //     if (today !== null) {
+  //       localStorage.setItem('date', today);
+  //     }
+  //     localStorage.setItem('pins', pins);
+  //     localStorage.setItem('names', names);
+  //     localStorage.setItem('aliases', aliases);
+  //     localStorage.setItem('dateTimes', dateTimes);
+  //   } catch(err) {
+  //     console.log(err);
+  //   }
+  // }
+  // private getAbsensiFromLocalStorage(): { lspins: string[]; lsnames: string[]; lsaliases: string[]; lsdateTimes: string[] } {
+  //   const pins = localStorage.getItem('pins') || '[]';
+  //   const names = localStorage.getItem('names') || '[]';
+  //   const aliases = localStorage.getItem('aliases') || '[]';
+  //   // 1.1.5 salah ambil dateTimes malah ambil pins
+  //   const dateTimes = localStorage.getItem('dateTimes') || '[]';
+  //   return { lspins: JSON.parse(pins), lsnames: JSON.parse(names), lsaliases: JSON.parse(aliases), lsdateTimes: JSON.parse(dateTimes) };
+  // }
 
   // BAGIAN DATA PEGAWAI
   // ----------------------------------------------------------------------------------
+  
   private pegawaiList: PegawaiType[] = [];
   async syncronPegawai() {
     this.pegawaiList = [];
@@ -568,9 +654,6 @@ export default class Home extends Vue {
       
       // 1.1.6 autosync waktu start pertama
       this.syncronize();
-    } else {
-      // 1.1.6 autosync waktu start pertama
-      this.syncronize();
     }
   }
 
@@ -604,8 +687,19 @@ export default class Home extends Vue {
     this.loadAjuan();
     this.sinkronDate = moment().format('DD/MM/YYYY');
     this.loadPegawai();
-    this.checkAsycActive();
   }
+
+  @Watch('sdkActive', { immediate: true }) onSdkActive(val: boolean) {
+    if (val) {
+      this.checkAsycActive();
+    }
+  }
+  @Watch('dbActive', { immediate: true }) onDbActive(val: boolean) {
+    if (val && ! this.sdkActive) {
+      this.syncronize();
+    }
+  }
+
 }
 </script>
 

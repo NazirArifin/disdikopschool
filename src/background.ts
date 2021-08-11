@@ -197,3 +197,39 @@ ipcMain.handle('ping-finger-machine', (event, ...args): Promise<any> => {
     });
   });
 });
+
+const fileLogPath = (date: string) => {
+  const path = require('path');
+  return path.join(app.getPath('appData'), app.getName(), date.replace(/\-/g, ''));
+}
+
+
+// membaca file, jika ada data baru di append dan resolve yang baru
+ipcMain.handle('write-log', (event, ...args): Promise<any> => {
+  return new Promise(async (resolve, reject) => {
+    const fs = require('fs');
+    const path = fileLogPath(args[0]);
+    try {
+      fs.readFile(path, 'utf-8', (err: any, data: any) => {
+        if (err) throw(err);
+        // content default berisi array kosong
+        let content: any[] = [];
+        if (data != undefined) {
+          // jika di file ada isinya maka di parse karena dia berupa string
+          content = JSON.parse(data);
+        }
+        if (args[1].length > 0) {
+          // tulis ke file jika ada databaru
+          fs.writeFile(path, JSON.stringify([ ...content, ...args[1] ]), (err: any) => {
+            if (err) throw(err);
+            resolve(content);
+          });
+        } else {
+          resolve(content);
+        }
+      });
+    } catch(err) {
+      reject(err);
+    }
+  });
+});
