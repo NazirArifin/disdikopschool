@@ -236,7 +236,7 @@ export default class Home extends Vue {
       }
       // jika tidak ada data baru yang dapat dikirimkan ke server maka kita throw
       if (logs.length == 0) {
-        throw '';
+        throw new Error('');
       }
 
       this.$store.dispatch('changeSpinnerMessage', 'MENGIRIM DATA KE SERVER');
@@ -269,7 +269,9 @@ export default class Home extends Vue {
           }
           this.$toast.error(temp.join(', '));
         } else {
-          this.$toast.error(message);
+          if (message.length > 0) {
+            this.$toast.error(message);
+          }
         }
       } else {
         if (err.length > 0) {
@@ -559,6 +561,10 @@ export default class Home extends Vue {
     this.loadAjuan();
     this.sinkronDate = moment().format('DD/MM/YYYY');
     this.loadPegawai();
+
+    // TODO: TESTING PURPOSES ONLY
+    // const data = await ipcRenderer.invoke('write-log', '2021-08-13', [{ pin: '232', dateTimes: '2021-08-13 06.00.00' }]);
+    // console.log(data);
   }
 
   @Watch('sdkActive', { immediate: true }) onSdkActive(val: boolean) {
