@@ -274,10 +274,12 @@ export default class Home extends Vue {
           }
         }
       } else {
-        if (err.length > 0) {
+        if (err.length > 0 && err != 'Result False. Tidak ada data!') {
           this.$toast.error(err);
         }
       }
+    } finally {
+      this.$store.dispatch('hideSpinner');
     }
 
   }

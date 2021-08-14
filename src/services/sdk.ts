@@ -116,7 +116,7 @@ ethernet_port=${this.sdkConfig.portmac}
         }).map((v: any) => {
           return { scan_date: v.ScanDate, pin: v.PIN }
         }));
-      }).catch(err => console.log(err));
+      }).catch(err => reject(err));
     });
   }
 

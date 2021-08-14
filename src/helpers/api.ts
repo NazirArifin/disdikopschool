@@ -21,6 +21,10 @@ export default class Api {
     return this.proxyUrl;
   }
 
+  public bodyParam(obj: any): string {
+    return $.param(obj);
+  }
+
   constructor() {
     axios.interceptors.request.use(config => {
       const token = localStorage.getItem('token');

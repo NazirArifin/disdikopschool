@@ -33,27 +33,37 @@ export default class Session {
     return new Promise((resolve, reject) => {
       Session.init();
       
-      // fetch(Session.api.proxy + '/login', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/x-www-form-urlencoded'
-      //   },
-      //   body: Session.api.urlEncode(user)
-      // }).then(response => {
-      //   return response.json();
-      // }).catch(err => {
-      //   reject(err);
-      // });
-      
-      Session.api.postResource('/login', user).then(data => {
+      fetch(Session.api.proxy + '/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: Session.api.bodyParam(user)
+      }).then(resp => {
+        if ( ! resp.ok) {
+          throw new Error('USERNAME DAN ATAU PASSWORD INVALID');
+        }
+        return resp.json();   
+      }).then(data => {
         const token = data.token;
         localStorage.setItem('token', token);
         this.fetchSaya(token).then(data => {
+          
           resolve(data);
         }).catch(text => {
           reject(text);
         });
-      }).catch(err => reject(err));
+      }).catch(err => {
+        reject(err);
+      });
+      
+      // Session.api.postResource('/login', user).then(data => {
+      //   const token = data.token;
+      //   localStorage.setItem('token', token);
+      //   this.fetchSaya(token).then(data => {
+      //     resolve(data);
+      //   }).catch(text => {
+      //     reject(text);
+      //   });
+      // }).catch(err => reject(err));
     });
   }
 

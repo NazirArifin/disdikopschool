@@ -85,7 +85,7 @@ export default class Front extends Vue {
       }).catch(err => {
         console.log(err);
         this.$store.dispatch('hideSpinner');
-        this.$toast.error('PENGECEKAN GAGAL');
+        // this.$toast.error('PENGECEKAN GAGAL');
       });
     }
   }
@@ -109,7 +109,7 @@ export default class Front extends Vue {
         }
       }
       if (err) {
-        this.$toast.error(`LOGIN ERROR: ${err.toString()}`);
+        this.$toast.error(`LOGIN ${err.toString().toUpperCase()}`);
       } else {
         this.$toast.error('Login Gagal');
       }
