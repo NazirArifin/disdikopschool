@@ -26,6 +26,13 @@ extend('required', required);
 extend('min', min);
 extend('max', max);
 
+type Logs = {
+  pin: string; 
+  name: string; 
+  alias: string; 
+  dateTime: string;
+}
+
 @Component({
   components: {
     Header, DatePicker,
@@ -202,7 +209,7 @@ export default class Home extends Vue {
   async syncronize() {
 
     const today = this.sinkronDate.split('/').reverse().join('-');
-    let logs: { pin: string; name: string; alias: string; dateTime: string }[] = [];
+    let logs: Logs[] = [];
     try {
       this.$store.dispatch('showSpinner', 'MENGAMBIL ABSENSI');
       
@@ -210,6 +217,7 @@ export default class Home extends Vue {
       let tempLogs: any[] = [];
       let useSdk = false;
       if (this.sdkActive && this.isAsyncActive) {
+        // jika kosong dari sdk, maka akan di throw ke catch block :(
         tempLogs = await this.sdk.getScanLog(today);
         useSdk = true;
       } else {
@@ -217,6 +225,7 @@ export default class Home extends Vue {
       }
 
       // variabel logs berisi templog yang raw di filter dan di map
+      // sumbernya bisa dari database atau ketika sdk ada data
       logs = tempLogs.filter((v: any) => {
         const p = this.pegawaiList.find((k: PegawaiType) => k.pin == v.pin);
         return p?.active;
@@ -234,7 +243,8 @@ export default class Home extends Vue {
         // const data = await ipcRenderer.invoke('write-log', '2021-09-11', [ { 'scan_date': '2021-08-11 10.00.00', pin: '1212202' } ]);
         logs = await ipcRenderer.invoke('write-log', today, logs);
       }
-      // jika tidak ada data baru yang dapat dikirimkan ke server maka kita throw
+
+      // jika tidak ada data baru yang dapat dikirimkan ke server maka kita throw, disebabkan oleh database kosong
       if (logs.length == 0) {
         throw new Error('');
       }
@@ -246,7 +256,7 @@ export default class Home extends Vue {
         alias: JSON.stringify(logs.map(v => v.alias)),
         dateTime: JSON.stringify(logs.map(v => v.dateTime))
       });
-      this.$store.dispatch('hideSpinner');
+      // this.$store.dispatch('hideSpinner');
       if (data.success) {
         this.$toast.success(`SUKSES: JUMLAH DATA TERPROSES: ${data.count}`);
         this.activateIdling();
@@ -254,8 +264,6 @@ export default class Home extends Vue {
         this.loadSyncData();
       }
     } catch(err) {
-      // pastikan 
-      this.$store.dispatch('hideSpinner');
       // 1.1.8 extract object jika bukan string
       if (typeof(err) != 'string') {
         const message = err.toString();
@@ -274,7 +282,27 @@ export default class Home extends Vue {
           }
         }
       } else {
-        if (err.length > 0 && err != 'Result False. Tidak ada data!') {
+        // jika sdk kosong maka errornya akan masuk kesini
+        if (err.length > 0 && err == 'Result False. Tidak ada data!') {
+          // tetap harus kirim ke server
+          const logs: Logs[] = await ipcRenderer.invoke('write-log', today, []);
+          if (logs.length > 0) {
+            this.$store.dispatch('changeSpinnerMessage', 'MENGIRIM DATA KE SERVER');
+            const data = await this.apiService.postResource('/sinkron', {
+              pin: JSON.stringify(logs.map(v => v.pin)),
+              name: JSON.stringify(logs.map(v => v.name)),
+              alias: JSON.stringify(logs.map(v => v.alias)),
+              dateTime: JSON.stringify(logs.map(v => v.dateTime))
+            });
+            // this.$store.dispatch('hideSpinner');
+            if (data.success) {
+              this.$toast.success(`SUKSES: JUMLAH DATA TERPROSES: ${data.count}`);
+              this.activateIdling();
+              await this.syncDb.insert({ date: moment().local().format('YYYY-MM-DD HH:mm:ss'), count: data.count });
+              this.loadSyncData();
+            }
+          }
+        } else {
           this.$toast.error(err);
         }
       }
