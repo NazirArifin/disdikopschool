@@ -208,6 +208,7 @@ export default class Home extends Vue {
   // 1.1.8 rewrite syncronize, harapannya lebih mudah dibaca dan lebih mudah di debug
   async syncronize() {
 
+    // this.sinkronDate = moment().format('DD/MM/YYYY');
     const today = this.sinkronDate.split('/').reverse().join('-');
     let logs: Logs[] = [];
     try {
@@ -511,6 +512,9 @@ export default class Home extends Vue {
         };
         
         const shift: { tanggal: string; libur: boolean; shift: { scanIn: string; scanOut: string } } = await this.apiService.getResource('/api/shift', { sekolah: this.idSekolah });
+        // 1.1.12 ubah sinkronDate dengan tanggal dari server
+        this.sinkronDate = shift.tanggal;
+        
         if ( ! shift.libur) {
           const { scanIn, scanOut } = shift.shift;
           const dayOfWeek = [1, 2, 3, 4, 5, 6];
