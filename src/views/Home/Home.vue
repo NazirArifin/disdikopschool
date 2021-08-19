@@ -510,7 +510,7 @@ export default class Home extends Vue {
           expired: moment.unix(expired).utc().local().format('DD-MM-YYYY HH.mm')
         };
         
-        const shift: { libur: boolean; shift: { scanIn: string; scanOut: string } } = await this.apiService.getResource('/api/shift', { sekolah: this.idSekolah });
+        const shift: { tanggal: string; libur: boolean; shift: { scanIn: string; scanOut: string } } = await this.apiService.getResource('/api/shift', { sekolah: this.idSekolah });
         if ( ! shift.libur) {
           const { scanIn, scanOut } = shift.shift;
           const dayOfWeek = [1, 2, 3, 4, 5, 6];
