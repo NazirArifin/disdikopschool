@@ -268,7 +268,14 @@ export default class Home extends Vue {
       // 1.1.8 extract object jika bukan string
       if (typeof(err) != 'string') {
         const message = err.toString();
-        if (message == 'Object') {
+        // 1.1.12 error dari server tidak terbaca dengan benar, hanya muncul object Object
+        // karena itu di if ditambah kondisi lagi
+        if (message == 'Object' || message == '[object Object]') {
+          // error dari server
+          if (Object.prototype.hasOwnProperty.call(err, 'data')) {
+            this.$toast.error(`ERROR: ${err.data.message.toUpperCase()}`);
+            return;
+          }
           // extract
           const temp: string[] = [];
           for (const key in err) {
