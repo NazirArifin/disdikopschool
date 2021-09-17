@@ -4,7 +4,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable no-unreachable */
 import { Component, Vue, Watch } from 'vue-property-decorator'
 import Header from '@/components/Header.vue'
 const DatePicker = require('vue2-datepicker').default
@@ -31,6 +30,17 @@ type Logs = {
   name: string; 
   alias: string; 
   dateTime: string;
+}
+
+type Shift = {
+  tanggal: string;
+  libur: boolean;
+  shift: {
+    scanIn: string;
+    scanOut: string;
+    scanInEnd: string;
+    scanOutEnd: string;
+  };
 }
 
 @Component({
@@ -126,7 +136,7 @@ export default class Home extends Vue {
     } else {
       try {
         await this.sdk.changeSetting(this.sdkConfig);
-      } catch(err) {
+      } catch(err: any) {
         this.$toast.error(err.toString());
       }
     }
@@ -187,6 +197,19 @@ export default class Home extends Vue {
     }
   }
 
+  get ableSync(): boolean {
+    const today = this.sinkronDate.split('/').reverse().join('-');
+    const now = moment().local().unix();
+    // diantara sync masuk
+    if (now >= moment(`${today} ${this.shiftData.shift.scanIn}`).local().unix() && now <= moment(`${today} ${this.shiftData.shift.scanInEnd}`).local().unix()) {
+      return true;
+    }
+    if (now >= moment(`${today} ${this.shiftData.shift.scanOut}`).local().unix() && now <= moment(`${today} ${this.shiftData.shift.scanOutEnd}`).local().unix()) {
+      return true;
+    }
+    return false;
+  }
+
   // BAGIAN SYNCRON
   // ----------------------------------------------------------------------------------
   private syncList: readonly SyncType[] = [];
@@ -207,6 +230,11 @@ export default class Home extends Vue {
   
   // 1.1.8 rewrite syncronize, harapannya lebih mudah dibaca dan lebih mudah di debug
   async syncronize() {
+    if ( ! this.ableSync) {
+      console.info('Bukan jam sinkron di sisi klien');
+      this.$toast.info('Bukan jam sinkron');
+      return;
+    }
 
     // this.sinkronDate = moment().format('DD/MM/YYYY');
     const today = this.sinkronDate.split('/').reverse().join('-');
@@ -264,7 +292,7 @@ export default class Home extends Vue {
         await this.syncDb.insert({ date: moment().local().format('YYYY-MM-DD HH:mm:ss'), count: data.count });
         this.loadSyncData();
       }
-    } catch(err) {
+    } catch(err: any) {
       // 1.1.8 extract object jika bukan string
       if (typeof(err) != 'string') {
         const message = err.toString();
@@ -311,7 +339,7 @@ export default class Home extends Vue {
             }
           }
         } else {
-          this.$toast.error(err);
+          this.$toast.info(err);
         }
       }
     } finally {
@@ -384,7 +412,7 @@ export default class Home extends Vue {
       if (change) empIdb = await this.empDb.getAll();
       this.pegawaiList = empIdb;
 
-    } catch(err) {
+    } catch(err: any) {
       this.$toast.error(err.toString());
     }
   }
@@ -500,6 +528,14 @@ export default class Home extends Vue {
   }
 
   // mengecek apakah sn autosync aktif
+  // 1.1.13 getter sdkActive dan shift untuk memastikan bahwa data shift sudah diambil dan sdk aktif
+  private shiftData: Shift = { shift: { scanIn: '', scanOut: '', scanInEnd: '', scanOutEnd: '' }, tanggal: '', libur: false };
+  get sdkActiveAndShiftCalled(): boolean {
+    if (this.shiftData.tanggal.length == 0) {
+      return false;
+    }
+    return this.sdkActive;
+  }
   async checkAsycActive() {
     const sn = localStorage.getItem('asyncKey');
     if (sn) {
@@ -518,15 +554,22 @@ export default class Home extends Vue {
           expired: moment.unix(expired).utc().local().format('DD-MM-YYYY HH.mm')
         };
         
-        const shift: { tanggal: string; libur: boolean; shift: { scanIn: string; scanOut: string } } = await this.apiService.getResource('/api/shift', { sekolah: this.idSekolah });
-        // 1.1.12 ubah sinkronDate dengan tanggal dari server
-        this.sinkronDate = shift.tanggal;
-        
-        if ( ! shift.libur) {
-          const { scanIn, scanOut } = shift.shift;
-          const dayOfWeek = [1, 2, 3, 4, 5, 6];
+        if ( ! this.shiftData.libur) {
+          const rule = new schedule.RecurrenceRule();
+          rule.dayOfWeek = [1, 2, 3, 4, 5, 6];
+          rule.hour = [7, 8, 9, 10, 11, 12, 13];
+          
+          let step = this.randomIntFromInterval(0, 15);
+          const ruleMinutes = [step];
+          while (step < 60) {
+            step += 15;
+            ruleMinutes.push(step);
+          }
+          rule.minute = ruleMinutes;
+          const j = schedule.scheduleJob(rule, () => {
+            this.syncronize();
+          });
 
-          // TODO: tes ujicoba
           // const ruleInHours = [10, 11];
           // const ruleInMinute = [8, 9, 10, 11, 12, 13, 14, 15, 16];
           // const ruleIn = new schedule.RecurrenceRule();
@@ -537,38 +580,42 @@ export default class Home extends Vue {
           //   console.log('called');
           // });
           
+          // shiftData.shift.scanIn - shiftData.shift.scanInEnd
+          // shiftData.shift.scanOut - shiftData.shift.scanOutEnd
+          // random menit awal 0 - 15, setelah itu ditambah 15 menit untuk berikutnya
+          // const unix = moment('2021-09-01 01:01:01').local().unix();
+          
+          
           // untuk scan masuk
-          let split = scanIn.split(':');
-          let hour = parseInt(split[0]);
-          const ruleInHours = [hour, hour + 1, hour + 2];
-          let minute = this.randomIntFromInterval(0, 30);
-          const ruleInMinute = [minute, minute + 30];
-          const ruleIn = new schedule.RecurrenceRule();
-          ruleIn.dayOfWeek = dayOfWeek;
-          ruleIn.hour = ruleInHours;
-          ruleIn.minute = ruleInMinute;
-          const j1 = schedule.scheduleJob(ruleIn, () => {
-            this.syncronize();
-          });
+          // let split = scanIn.split(':');
+          // let hour = parseInt(split[0]);
+          // const ruleInHours = [hour, hour + 1, hour + 2];
+          // let minute = this.randomIntFromInterval(0, 30);
+          // const ruleInMinute = [minute, minute + 30];
+          // const ruleIn = new schedule.RecurrenceRule();
+          // ruleIn.dayOfWeek = dayOfWeek;
+          // ruleIn.hour = ruleInHours;
+          // ruleIn.minute = ruleInMinute;
+          // const j1 = schedule.scheduleJob(ruleIn, () => {
+          //   this.syncronize();
+          // });
 
-          // untuk scan pulang, jenjang korwil pulang ada yang 10:30
-          split = scanOut.split(':');
-          hour = parseInt(split[0]);
-          const ruleOutHours = [hour, hour + 1, hour + 2];
-          minute = this.randomIntFromInterval(parseInt(split[1]), parseInt(split[1]) + 30);
-          const ruleOutMinute = [minute, Math.abs((minute + 30) - 60)];
-          const ruleOut = new schedule.RecurrenceRule();
-          ruleOut.dayOfWeek = dayOfWeek;
-          ruleOut.hour = ruleOutHours;
-          ruleOut.minute = ruleOutMinute;
-          const j2 = schedule.scheduleJob(ruleOut, () => {
-            this.syncronize();
-          });
+          // // untuk scan pulang, jenjang korwil pulang ada yang 10:30
+          // split = scanOut.split(':');
+          // hour = parseInt(split[0]);
+          // const ruleOutHours = [hour, hour + 1, hour + 2];
+          // minute = this.randomIntFromInterval(parseInt(split[1]), parseInt(split[1]) + 30);
+          // const ruleOutMinute = [minute, Math.abs((minute + 30) - 60)];
+          // const ruleOut = new schedule.RecurrenceRule();
+          // ruleOut.dayOfWeek = dayOfWeek;
+          // ruleOut.hour = ruleOutHours;
+          // ruleOut.minute = ruleOutMinute;
+          // const j2 = schedule.scheduleJob(ruleOut, () => {
+          //   this.syncronize();
+          // });
         }
       }
       
-      // 1.1.6 autosync waktu start pertama
-      this.syncronize();
     }
   }
 
@@ -600,22 +647,36 @@ export default class Home extends Vue {
   mounted() {
     this.loadSyncData();
     this.loadAjuan();
-    this.sinkronDate = moment().format('DD/MM/YYYY');
     this.loadPegawai();
 
     // TODO: TESTING PURPOSES ONLY
     // const data = await ipcRenderer.invoke('write-log', '2021-08-13', [{ pin: '232', dateTimes: '2021-08-13 06.00.00' }]);
-    // console.log(data);
   }
 
-  @Watch('sdkActive', { immediate: true }) onSdkActive(val: boolean) {
-    if (val) {
-      this.checkAsycActive();
+  @Watch('idSekolah', { immediate: true }) async onIdSekoah(val: number) {
+    try {
+      // 1.1.13 load shift data saat pertamakali di load
+      this.shiftData = await this.apiService.getResource('/api/shift', { sekolah: this.idSekolah });
+      // 1.1.12 ubah sinkronDate dengan tanggal dari server
+      const dateTime = this.shiftData.tanggal.split(' ');
+      this.sinkronDate = dateTime[0];
+      // cek selisih jam server dengan jam komputer
+      const d = dateTime[0].split('/').reverse().join('-') + ' ' + dateTime[1];
+      const now = moment().local().unix();
+      const nowServer = moment(d).local().unix();
+      if (Math.abs(now - nowServer) > (5 * 60)) {
+        this.$toast.error('Jam komputer selisih > 5 menit dibanding jam server!');
+      }
+    } catch(_) {
+      this.$toast.error('Gagal menghubungi server dikarenakan jaringan');
+      // 1.1.12 Ini akan menghalangi non SDK untuk melakukan sinkronisasi
+      this.inIdling = true;
     }
   }
-  @Watch('dbActive', { immediate: true }) onDbActive(val: boolean) {
-    if (val && ! this.sdkActive) {
-      this.syncronize();
+
+  @Watch('sdkActiveAndShiftCalled', { immediate: true }) onSdkActive(val: boolean) {
+    if (val) {
+      this.checkAsycActive();
     }
   }
 

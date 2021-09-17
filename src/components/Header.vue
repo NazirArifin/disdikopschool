@@ -76,7 +76,8 @@ export default class Header extends Vue {
       sdk.quickCheckConnection().then(() => {
         this.sdkActive = true;
         this.$emit('sdkActive');
-        this.checkDb();
+        // 1.1.12 jika sdk active maka tidak perlu mengecek database
+        // this.checkDb();
       }).catch(() => {
         this.checkDb();
       });

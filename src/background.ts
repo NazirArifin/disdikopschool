@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-var-requires */
 'use strict'
 let win: BrowserWindow | null
 
@@ -94,7 +97,7 @@ app.on('ready', async () => {
     // Install Vue Devtools
     try {
       await installExtension(VUEJS_DEVTOOLS)
-    } catch (e) {
+    } catch (e: any) {
       console.error('Vue Devtools failed to install:', e.toString())
     }
   }
@@ -201,12 +204,12 @@ ipcMain.handle('ping-finger-machine', (event, ...args): Promise<any> => {
 });
 
 const fileLogPath = (date: string) => {
-  return join(app.getPath('appData'), app.getName(), date.replace(/\-/g, ''));
+  return join(app.getPath('appData'), app.getName(), date.replace(/-/g, ''));
 }
 
 // membaca file, jika ada data baru di append dan resolve yang baru
 ipcMain.handle('write-log', (event, ...args): Promise<any> => {
-  return new Promise(async (resolve, reject) => {
+  return new Promise((resolve, reject) => {
     const path = fileLogPath(args[0]);
     try {
       // throw exception jika file tidak ada
@@ -221,7 +224,7 @@ ipcMain.handle('write-log', (event, ...args): Promise<any> => {
       } else {
         resolve(content);
       }
-    } catch(err) {
+    } catch(err: any) {
       if (err.code === 'ENOENT') {
         // ada data logs
         if (args[1].length > 0) {

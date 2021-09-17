@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/camelcase */
 declare const $: any;
@@ -133,7 +134,13 @@ ethernet_port=${this.sdkConfig.portmac}
         },
         body: $.param({ sn: this.sdkConfig.snmac })
       })
-      .then(response => response.json())
+      .then(response => {
+        if (response.ok) {
+          return response.json();
+        } else {
+          reject('Gagal menghubungi mesin!');
+        }
+      })
       .then(data => {
         if (data.Result) {
           resolve(data);
