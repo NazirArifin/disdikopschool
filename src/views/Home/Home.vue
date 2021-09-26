@@ -136,7 +136,7 @@ export default class Home extends Vue {
     } else {
       try {
         await this.sdk.changeSetting(this.sdkConfig);
-      } catch(err: any) {
+      } catch(err) {
         this.$toast.error(err.toString());
       }
     }
