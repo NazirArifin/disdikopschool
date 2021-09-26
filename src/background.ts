@@ -97,7 +97,7 @@ app.on('ready', async () => {
     // Install Vue Devtools
     try {
       await installExtension(VUEJS_DEVTOOLS)
-    } catch (e: any) {
+    } catch (e) {
       console.error('Vue Devtools failed to install:', e.toString())
     }
   }
@@ -224,7 +224,7 @@ ipcMain.handle('write-log', (event, ...args): Promise<any> => {
       } else {
         resolve(content);
       }
-    } catch(err: any) {
+    } catch(err) {
       if (err.code === 'ENOENT') {
         // ada data logs
         if (args[1].length > 0) {

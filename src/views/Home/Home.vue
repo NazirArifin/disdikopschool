@@ -295,7 +295,7 @@ export default class Home extends Vue {
         await this.syncDb.insert({ date: moment().local().format('YYYY-MM-DD HH:mm:ss'), count: data.count });
         this.loadSyncData();
       }
-    } catch(err: any) {
+    } catch(err) {
       // 1.1.8 extract object jika bukan string
       if (typeof(err) != 'string') {
         const message = err.toString();
@@ -415,7 +415,7 @@ export default class Home extends Vue {
       if (change) empIdb = await this.empDb.getAll();
       this.pegawaiList = empIdb;
 
-    } catch(err: any) {
+    } catch(err) {
       this.$toast.error(err.toString());
     }
   }
