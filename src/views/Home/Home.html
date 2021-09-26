@@ -61,13 +61,14 @@
                     <!-- <p class="alert alert-success mb-3 p-1">
                       <small>Dalam beberapa hari kedepan, Anda dapat melakukan sinkron untuk tanggal-tanggal selain hari ini. Pastikan Anda melakukan sinkron pada tanggal-tanggal tersebut terutama tanggal yang belum pernah disinkron sebelumnya.</small> 
                     </p> -->
-                    <p class="alert alert-success mb-3 p-1" style="line-height: 1rem;">
+                    <p class="alert alert-success mb-3 p-1" v-if="shiftData.shift.scanIn.length > 0" style="line-height: 1rem;">
                       <small>Jadwal sinkron absensi untuk hari ini adalah: <br><strong>{{ shiftData.shift.scanIn.replace(/:00$/, '') }} - {{ shiftData.shift.scanInEnd.replace(/:00$/, '') }}</strong>
                       </strong><br><strong>{{ shiftData.shift.scanOut.replace(/:00$/, '') }} - {{ shiftData.shift.scanOutEnd.replace(/:00$/, '') }}</strong><br>Diluar jam tersebut tidak akan diproses oleh server</small>
                     </p>
+                    <p class="alert alert-warning mb-3 p-3" v-else style="font-size: 1.2rem;">L I B U R</p>
                     <!-- <date-picker :format="'DD/MM/YYYY'" v-model="sinkronDate" :value-type="'DD/MM/YYYY'" :disabled-date="disabledBefore1March"></date-picker> -->
                   </div>
-                  <p class="mb-1">
+                  <p class="mb-1" v-if="shiftData.shift.scanIn.length > 0">
                     <button type="button" class="btn btn-lg btn-block btn-primary py-3 shadow" :disabled="inIdling" v-on:click="syncronize()">Sinkron Absensi Sekarang</button>
                   </p>
                   <p class="text-center mb-3">

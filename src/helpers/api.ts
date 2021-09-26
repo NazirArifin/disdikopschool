@@ -38,7 +38,7 @@ export default class Api {
   /**
    * GET resource
    * 
-   * Untuk GET kita gunakan proxy
+   * Untuk GET
    *
    * @param {string} type
    * @param {*} [params=null]
@@ -47,7 +47,7 @@ export default class Api {
    */
   public getResource(type: string, params: any = null): Promise<any> {
     return new Promise((resolve, reject) => {
-      axios.get(this.proxyUrl + type, { params: params, paramsSerializer: function(params) {
+      axios.get(this.apiUrl + type, { params: params, paramsSerializer: function(params) {
         return $.param(params);
       } }).then(response => {
         if (response.headers['content-type'] != 'application/json') {
@@ -178,7 +178,7 @@ export default class Api {
    */
   public deleteResource(type: string): Promise<any> {
     return new Promise((resolve, reject) => {
-      axios.delete(this.proxyUrl + type).then(response => {
+      axios.delete(this.apiUrl + type).then(response => {
         resolve(response.status == 204);
       }).catch(err => {
         reject(err.response);

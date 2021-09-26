@@ -11,7 +11,7 @@ export default class Session {
 
   private static fetchSaya(token: string): Promise<any> {
     return new Promise((resolve, reject) => {
-      const url = Session.api.proxy + '/saya';
+      const url = Session.api.url + '/saya';
       fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -33,7 +33,7 @@ export default class Session {
     return new Promise((resolve, reject) => {
       Session.init();
       
-      fetch(Session.api.proxy + '/login', {
+      fetch(Session.api.url + '/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: Session.api.bodyParam(user)

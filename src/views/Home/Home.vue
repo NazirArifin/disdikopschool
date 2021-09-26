@@ -35,7 +35,7 @@ type Logs = {
 type Shift = {
   tanggal: string;
   libur: boolean;
-  shift: {
+  shift: null | {
     scanIn: string;
     scanOut: string;
     scanInEnd: string;
@@ -198,6 +198,9 @@ export default class Home extends Vue {
   }
 
   get ableSync(): boolean {
+    if ( ! this.shiftData.shift) {
+      return false;
+    }
     const today = this.sinkronDate.split('/').reverse().join('-');
     const now = moment().local().unix();
     // diantara sync masuk
@@ -231,7 +234,7 @@ export default class Home extends Vue {
   // 1.1.8 rewrite syncronize, harapannya lebih mudah dibaca dan lebih mudah di debug
   async syncronize() {
     if ( ! this.ableSync) {
-      console.info('Bukan jam sinkron di sisi klien');
+      // console.info('Bukan jam sinkron di sisi klien');
       this.$toast.info('Bukan jam sinkron');
       return;
     }
@@ -358,7 +361,7 @@ export default class Home extends Vue {
     try {
       // ambil data dari database atau dari sdk, diutamakan yang sdk
       let empDb: any[] = [];
-      if (this.sdkActive && this.isAsyncActive) {
+      if (this.sdkActive) {
         const rows = await this.sdk.getPegawai();
         empDb = rows.Data.map((v: any) => {
           return {
@@ -656,7 +659,10 @@ export default class Home extends Vue {
   @Watch('idSekolah', { immediate: true }) async onIdSekoah(val: number) {
     try {
       // 1.1.13 load shift data saat pertamakali di load
-      this.shiftData = await this.apiService.getResource('/api/shift', { sekolah: this.idSekolah });
+      const data = await this.apiService.getResource('/api/shift', { sekolah: this.idSekolah });
+      if ( ! data.libur) {
+        this.shiftData = data;
+      }
       // 1.1.12 ubah sinkronDate dengan tanggal dari server
       const dateTime = this.shiftData.tanggal.split(' ');
       this.sinkronDate = dateTime[0];
