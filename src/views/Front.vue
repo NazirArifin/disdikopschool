@@ -17,8 +17,8 @@
               <form role="form" novalidate class="form-horizontal">
                 <div class="form-group row">
                   <label for="nip" class="col-sm-4 col-form-label">USERNAME</label>
-                  <validation-provider tag="div" class="col-sm-8" rules="required|min:5|max:20">
-                    <input type="text" v-model="user.username" required minlength="5" maxlength="20" class="form-control" id="nip">
+                  <validation-provider tag="div" class="col-sm-8" rules="required|min:4|max:20">
+                    <input type="text" v-model="user.username" required minlength="4" maxlength="20" class="form-control" id="nip">
                   </validation-provider>
                 </div>
                 <div class="form-group row">
