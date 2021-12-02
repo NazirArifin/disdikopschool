@@ -546,7 +546,6 @@ export default class Home extends Vue {
       const now = moment().local().unix();
       this.isAsyncActive = true;
       if (now > expired) {
-        localStorage.removeItem('asyncKey');
         this.isAsyncActive = await this.saveAsyncNumber();
       }
       
