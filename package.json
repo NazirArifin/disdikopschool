@@ -1,0 +1,46 @@
+{
+  "name": "opschool",
+  "private": true,
+  "version": "1.2.0",
+  "author": {
+    "name": "disdikpmk",
+    "email": "disdikpmk@gmail.com"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc && vite build && electron-builder",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@vuepic/vue-datepicker": "^5.4.0",
+    "axios": "^1.4.0",
+    "date-fns": "^2.30.0",
+    "dotenv": "^16.3.1",
+    "electron-dl": "^3.5.0",
+    "jsstore": "^4.5.6",
+    "mariadb": "^3.2.0",
+    "node-schedule": "^2.1.1",
+    "pinia": "^2.1.4",
+    "qs": "^6.11.2",
+    "simple-line-icons": "^2.5.5",
+    "vee-validate": "^4.10.5",
+    "vue": "^3.2.47",
+    "vue-router": "^4.2.2",
+    "vue-toastification": "^2.0.0-rc.5",
+    "yup": "^1.2.0"
+  },
+  "devDependencies": {
+    "@types/node-schedule": "^2.1.0",
+    "@types/qs": "^6.9.7",
+    "@vitejs/plugin-vue": "^4.1.0",
+    "electron": "^24.4.0",
+    "electron-builder": "^23.6.0",
+    "sass": "^1.63.6",
+    "typescript": "^5.0.2",
+    "vite": "^4.3.2",
+    "vite-plugin-electron": "^0.11.2",
+    "vite-plugin-electron-renderer": "^0.14.5",
+    "vue-tsc": "^1.4.2"
+  },
+  "main": "dist-electron/main.js"
+}

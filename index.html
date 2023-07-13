@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="icon" href="/icon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>APLIKASI ABSENSI - OPERATOR SEKOLAH</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/plugins.min.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <!-- https://stackoverflow.com/questions/32621988/electron-jquery-is-not-defined -->
+    <script>
+      if (typeof module === "object") {
+        window.module = module;
+        module = undefined;
+      }
+    </script>
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/plugins.min.js"></script>
+
+    <script>
+      if (window.module) module = window.module;
+    </script>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
