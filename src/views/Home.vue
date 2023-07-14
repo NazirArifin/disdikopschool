@@ -428,6 +428,8 @@ async function downloadReport() {
 
 /**
  * Watcher untuk sinkronisasi data
+ * NOTE: watcher hanya akan ke trigger jika idSekolah.value berubah karena aplikasi di run pertamakali
+ * asumsi aplikasi dirun setiap hari
  */
 watch(idSekolah, async () => {
   if (! idSekolah.value) {

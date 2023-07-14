@@ -39,6 +39,27 @@ onMounted(async () => {
 
   const version = await ipcRenderer.invoke('get-version');
   mainStore.setVersion(version);
+
+  ipcRenderer.on('update-available', () => {
+    ipcRenderer.removeAllListeners('update-available');
+    mainStore.showSpinner('UPDATE TERSEDIA. PERSIAPAN MENDOWNLOAD...');
+  });
+  ipcRenderer.on('download-progress', (event, progress) => {
+    console.log(event);
+    console.log(progress);
+    mainStore.changeSpinMessage(progress);
+  });
+  ipcRenderer.on('update-downloaded', () => {
+    mainStore.hideSpinner();
+  });
+  ipcRenderer.on('update-error', (event, data) => {
+    ipcRenderer.removeAllListeners('update-error');
+    mainStore.hideSpinner();
+    console.log(event);
+    console.log(data);
+  });
+
+
 });
 </script>
 

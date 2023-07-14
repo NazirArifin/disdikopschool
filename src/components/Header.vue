@@ -34,7 +34,7 @@ async function checkDb() {
     emits('db-active', true);
   } catch(e) {
     console.log(e)
-    alertify.alert('ERROR', '<strong class="text-danger">KONEKSI DATABASE GAGAL!</strong>', function() {
+    alertify.alert('ERROR', '<strong class="text-danger">PERCOBAAN KONEKSI KE DATABASE GAGAL!</strong>', function() {
       // do nothing
     });
   }

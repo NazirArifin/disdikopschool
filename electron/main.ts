@@ -4,6 +4,7 @@ import FbDb from '../src/services/fpdb';
 import { join } from 'path';
 import { readFileSync, writeFileSync } from 'fs';
 import { download } from 'electron-dl';
+import { autoUpdater } from 'electron-updater';
 
 // The built directory structure
 //
@@ -52,6 +53,7 @@ function createWindow() {
   } else {
     // win.loadFile('dist/index.html')
     win.loadFile(path.join(process.env.DIST, 'index.html'))
+    autoUpdater.checkForUpdatesAndNotify();
   }
 }
 
@@ -78,10 +80,26 @@ ipcMain.on('enable-dev-tools', () => {
   win?.webContents.openDevTools();
 });
 
-// const formatBytes = (a: number, b = 2) => {
-//   if(0===a)return"0 Bytes";const c=0>b?0:b,d=Math.floor(Math.log(a)/Math.log(1024));return parseFloat((a/Math.pow(1024,d)).toFixed(c))+" "+["Bytes","KB","MB","GB","TB","PB","EB","ZB","YB"][d]
-// }
+// autoupdater
+const formatBytes = (a: number, b = 2) => {
+  if(0===a)return"0 Bytes";const c=0>b?0:b,d=Math.floor(Math.log(a)/Math.log(1024));return parseFloat((a/Math.pow(1024,d)).toFixed(c))+" "+["Bytes","KB","MB","GB","TB","PB","EB","ZB","YB"][d]
+}
+autoUpdater.on('update-available', () => {
+  win?.webContents.send('update-available');
+});
+autoUpdater.on('update-downloaded', () => {
+  win?.webContents.send('update-downloaded');
+});
+autoUpdater.on('download-progress', (progress) => {
+  let message = 'DOWNLOAD SPEED: ' + formatBytes(progress.bytesPerSecond) + '/s';
+  message = message + ' - DOWNLOADED: ' + Math.round(progress.percent) + '%';
+  win?.webContents.send('download-progress', message);
+});
+autoUpdater.on('error', (error) => {
+  win?.webContents.send('update-error', error);
+});
 
+// mariadb request
 let dbInstance: FbDb|null = null;
 ipcMain.handle('db-quick-check', async () => {
   if ( ! dbInstance) {
