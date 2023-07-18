@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc && vite build && electron-builder",
+    "release": "vue-tsc && vite build && electron-builder --publish always",
     "preview": "vite preview"
   },
   "dependencies": {

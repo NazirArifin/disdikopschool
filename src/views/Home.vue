@@ -19,6 +19,7 @@ import { conn, initJsStore } from '../services/idb';
 import schedule from 'node-schedule';
 import IjinModal from '../components/IjinModal.vue';
 import VueDatePicker from '@vuepic/vue-datepicker';
+import { id } from 'date-fns/esm/locale';
 
 const mainStore = useMainStore();
 const toast = useToast();
@@ -64,7 +65,7 @@ const lastSync = computed(() => {
   if (syncList.value.length === 0) {
     return '-';
   }
-  return format(new Date(syncList.value[0].date), 'EEEE, dd MMMM yyyy HH.mm');
+  return format(new Date(syncList.value[0].date), 'EEEE, dd MMMM yyyy HH.mm', { locale: id });
 });
 const inIdling = ref(false);
 
@@ -452,6 +453,8 @@ watch(idSekolah, async () => {
     if (Math.abs(now - nowServer) > (5 * 60)) {
       toast.error('Jam komputer selisih > 5 menit dibandingkan dengan jam server, silahkan sinkron manual');
     }
+    // 1.2.0 load pengajuan ijin
+    loadAjuan();
   } catch(_e) {
     toast.error('Gagal menghubungi server dikarenakan jaringan');
     inIdling.value = true;
@@ -480,7 +483,6 @@ onMounted(() => {
 
   loadSyncData();
   loadPegawai();
-  loadAjuan();
 });
 </script>
 
