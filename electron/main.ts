@@ -106,8 +106,10 @@ ipcMain.handle('db-quick-check', async () => {
     dbInstance = await FbDb.getInstance(win);
   }
   try {
-    return await dbInstance.quickCheckConnection();
+    const data = await dbInstance.quickCheckConnection();
+    return data;
   } catch(err) {
+    console.log(err);
     return err;
   }
 });
@@ -116,8 +118,10 @@ ipcMain.handle('db-check', async (_event, config) => {
     dbInstance = await FbDb.getInstance(win);
   }
   try {
-    return await dbInstance.checkConnection(config);
+    const data = await dbInstance.checkConnection(config);
+    return data;
   } catch(err) {
+    console.log(err);
     return err;
   }
 });

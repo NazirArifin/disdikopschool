@@ -1,3 +1,14 @@
+// export interface PoolConfig {
+//   host: string;
+//   port: number;
+//   user: string;
+//   password: string;
+//   database: string;
+//   multipleStatements: boolean;
+//   connectionLimit: number;
+//   bigIntAsNumber: boolean;
+// }
+
 export type SdkConfigType = {
   instpath: string;
   ipmac: string;

@@ -1,5 +1,6 @@
 import { BrowserWindow } from 'electron';
-import mariadb, { PoolConfig } from 'mariadb';
+import { PoolOptions } from 'mysql2';
+import mysql2 from 'mysql2/promise';
 
 class Database {
   private static pool: any = null;
@@ -9,6 +10,11 @@ class Database {
       if (param == undefined) param = [];
       try {
         const result = await Database.pool.query(query, param);
+        // is array
+        if (Array.isArray(result) && result.length === 2) {
+          resolve(result[0]);
+        }
+        // is object
         resolve(result);
       } catch(err) {
         reject(err);
@@ -16,9 +22,9 @@ class Database {
     });
   }
 
-  public static init(dbConfig: PoolConfig) {
+  public static init(dbConfig: PoolOptions) {
     if ( ! Database.pool) {
-      Database.pool = mariadb.createPool(dbConfig);
+      Database.pool = mysql2.createPool(dbConfig);
     }
   }
 
@@ -29,7 +35,7 @@ class Database {
 }
 
 class FbDb {
-  private static dbConfig: PoolConfig = {
+  private static dbConfig: PoolOptions = {
     host: 'localhost',
     port: 3306,
     user: 'root',
@@ -37,7 +43,7 @@ class FbDb {
     database: '',
     multipleStatements: true,
     connectionLimit: 10,
-    bigIntAsNumber: true
+    // bigIntAsNumber: true
   };
   private static instance: FbDb|null = null;
   private static mainWindow: BrowserWindow|null = null;
@@ -65,7 +71,7 @@ class FbDb {
     return this.instance;
   }
 
-  public changeSetting(config: PoolConfig) {
+  public changeSetting(config: PoolOptions) {
     if (JSON.stringify(config) != JSON.stringify(FbDb.dbConfig)) {
       FbDb.mainWindow?.webContents.executeJavaScript(`localStorage.removeItem('dbSetting')`);
       FbDb.mainWindow?.webContents.executeJavaScript(`localStorage.setItem('dbSetting', '${JSON.stringify(config)}')`);
@@ -80,7 +86,7 @@ class FbDb {
   quickCheckConnection(): Promise<any> {
     return new Promise((resolve, reject) => {
       try {
-        console.log(Database)
+        // console.log(Database)
         Database.query(`SHOW VARIABLES LIKE "version"`).then(t => {
           resolve(t);
         });
@@ -90,17 +96,22 @@ class FbDb {
     });
   }
 
-  checkConnection(config: PoolConfig): Promise<any> {
+  checkConnection(config: PoolOptions): Promise<any> {
     return new Promise((resolve, reject) => {
       try {
         Database.close();
         Database.init(config);
         Database.query(`SHOW VARIABLES LIKE "version"`).then(v => {
+          
           const version = v[0].Value;
           Database.query(`SHOW TABLES`).then(t => {
-            const tables = t.map((row: any) => {
-              return row.Tables_in_fpdb;
-            }).filter((row: any) => row == 'att_log' || row == 'pegawai');
+            // only if array we map
+            let tables: any = [];
+            if (Array.isArray(t)) {
+              tables = t.map((row: any) => {
+                return row.Tables_in_fpdb;
+              }).filter((row: any) => row == 'att_log' || row == 'pegawai');
+            }
 
             resolve({
               version: version,

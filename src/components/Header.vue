@@ -21,6 +21,12 @@ const emits = defineEmits(['sdk-active', 'db-active']);
 
 const mainStore = useMainStore();
 const version = computed(() => mainStore.version);
+const sekolahAndVersion = computed(() => {
+  if (props.sekolah.length > 0) {
+    return true;
+  }
+  return false;
+});
 
 const dateToday = ref('');
 const timeToday = ref('');
@@ -48,10 +54,9 @@ async function checkSdk() {
       sdkActive.value = true;
       emits('sdk-active', true);
     } catch(e) {
-      checkDb();
+      // console.log(e)
+      // do nothing
     }
-  } else {
-    checkDb();
   }
 }
 
@@ -61,11 +66,11 @@ function logout() {
   document.title = `APLIKASI ABSENSI ${version.value} - OPERATOR SEKOLAH`;
 }
 
-watch(props, () => {
-  if (props.sekolah) {
+watch(sekolahAndVersion, (val) => {
+  if (val) {
     document.title = `APLIKASI ABSENSI ${version.value} - ${props.sekolah}`;
   }
-});
+}, { immediate: true });
 
 onMounted(() => {
   // date today
@@ -89,7 +94,7 @@ onMounted(() => {
     }, 1000);
   });
   checkSdk();
-
+  checkDb();
 });
 </script>
 

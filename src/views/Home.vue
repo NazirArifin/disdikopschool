@@ -136,7 +136,7 @@ async function syncronize(): Promise<void> {
 
     // jika tidak ada data baru yang dapat dikirimkan ke server maka kita throw, disebabkan oleh database kosong
     if (logs.length == 0) {
-      throw new Error('');
+      throw new Error('Tidak ada data baru untuk dikirimkan ke server');
     }
 
     mainStore.changeSpinMessage('MENGIRIMKAN ABSENSI KE SERVER');
@@ -312,9 +312,10 @@ async function syncronPegawai() {
       });
     } else {
       const rows = await ipcRenderer.invoke('db-get-pegawai');
+      if (! Array.isArray(rows)) throw new Error(rows);
       empDbLocal = rows.map((v: any) => {
         return {
-          pin: v.pegawai, nip: v.pegawai_nip || v.pegawai_pin, nama: v.pegawai_nama, alias: v.pegawai_alias
+          pin: v.pegawai_pin, nip: v.pegawai_nip || v.pegawai_pin, nama: v.pegawai_nama, alias: v.pegawai_alias
         }
       });
     }
@@ -393,10 +394,13 @@ const jenisIjinList = ref<{ id: number, val: string }[]>([
   { id: 5, val: 'Tidak Scan Pulang' }
 ]);
 const ajuanList = ref<any[]>([]);
-function loadAjuan() {
-  apiService.getResource('/ijin', { sekolah: idSekolah.value }).then(data => {
+async function loadAjuan() {
+  try {
+    const data = await apiService.getResource('/ijin', { sekolah: idSekolah.value });
     ajuanList.value = data;
-  }).catch(err => toast.error(err.toString()));
+  } catch(e: any) {
+    toast.error(e.toString());
+  }
 }
 const idEdited = ref<number>(0);
 function editAjuan(i: number) {
@@ -454,7 +458,7 @@ watch(idSekolah, async () => {
       toast.error('Jam komputer selisih > 5 menit dibandingkan dengan jam server, silahkan sinkron manual');
     }
     // 1.2.0 load pengajuan ijin
-    loadAjuan();
+    await loadAjuan();
   } catch(_e) {
     toast.error('Gagal menghubungi server dikarenakan jaringan');
     inIdling.value = true;

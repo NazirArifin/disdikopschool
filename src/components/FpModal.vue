@@ -5,8 +5,8 @@ declare const alertify: any;
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
 import { SdkConfigType } from '../helpers/types';
-import { PoolConfig } from 'mariadb';
 import { ipcRenderer } from 'electron';
+import { PoolOptions } from 'mysql2';
 import Sdk from '../services/sdk';
 import MyDb from '../services/mydb';
 import { initJsStore, conn } from '../services/idb';
@@ -28,10 +28,11 @@ const sdkConfig = reactive<SdkConfigType>({
   passwordmac: '0', numbermac: '1', activationmac: '',
   iphost: '', porthost: ''
 });
-const dbConfig = reactive<PoolConfig>({
+const dbConfig = reactive<PoolOptions>({
   host: 'localhost', port: 3306, user: 'root',
   password: '', database: '', multipleStatements: true,
-  connectionLimit: 3000, bigIntAsNumber: true
+  connectionLimit: 10, 
+  // bigIntAsNumber: true
 });
 const sdk = Sdk.getInstance();
 const empDb = new MyDb(initJsStore, conn, 'Pegawai');

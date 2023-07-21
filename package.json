@@ -1,7 +1,7 @@
 {
   "name": "opschool",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Client Aplikasi Absensi Sekolah",
   "author": {
     "name": "disdikpmk",
@@ -21,7 +21,7 @@
     "electron-dl": "^3.5.0",
     "electron-updater": "^6.1.1",
     "jsstore": "^4.5.6",
-    "mariadb": "^3.2.0",
+    "mysql2": "^3.5.2",
     "node-schedule": "^2.1.1",
     "pinia": "^2.1.4",
     "qs": "^6.11.2",
